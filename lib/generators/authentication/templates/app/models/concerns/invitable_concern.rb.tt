@@ -1,0 +1,86 @@
+module InvitableConcern
+  extend ActiveSupport::Concern
+
+  INVITATION_TOKEN_EXPIRES_IN = 7.days
+
+  included do
+    belongs_to :invited_by, polymorphic: true, optional: true
+  end
+
+  class_methods do
+    def invite!(email_address, invited_by: nil)
+      user = find_by(email_address: email_address)
+
+      if user
+        # Re-inviting an existing pending invitee refreshes their token; anyone else
+        # is returned untouched (and no email is sent).
+        if user.invitation_pending?
+          user.update!(invitation_token: generate_invitable_token, invitation_created_at: Time.current)
+          user.send_invitation_instructions
+          invited_by.increment!(:invitations_count) if invited_by.respond_to?(:invitations_count)
+        end
+
+        return user
+      end
+
+      user = new(
+        email_address: email_address,
+        password: generate_temporary_password,
+        invited_by: invited_by,
+        invitation_token: generate_invitable_token,
+        invitation_created_at: Time.current
+      )
+
+      if user.save
+        user.send_invitation_instructions
+        invited_by.increment!(:invitations_count) if invited_by.respond_to?(:invitations_count)
+      end
+
+      user
+    end
+
+    def find_by_valid_invitation_token(token)
+      return if token.blank?
+
+      user = find_by(invitation_token: token)
+      user if user&.invitation_created_at&.after?(INVITATION_TOKEN_EXPIRES_IN.ago)
+    end
+
+    protected
+
+    def generate_invitable_token
+      SecureRandom.urlsafe_base64(32)
+    end
+
+    def generate_temporary_password
+      lower_letter = ("a".."z").to_a.sample(2)
+      upper_letter = ("A".."Z").to_a.sample(2)
+      digits = (1..5).to_a.sample(2)
+      special = %w[~ ! @ % & _ + -].sample(2)
+      prefix = (lower_letter + upper_letter + digits + special).join
+      SecureRandom.base58(16).sub(/\A.{#{prefix.length}}/, prefix)
+    end
+  end
+
+  def invitation_pending?
+    invitation_token.present? && invitation_accepted_at.nil?
+  end
+
+  def send_invitation_instructions
+    update!(invitation_sent_at: Time.current)
+    InvitationsMailer.invitation_instructions(self).deliver_later
+  end
+
+  def accept_invitation!(password:, password_confirmation:)
+    assign_attributes(
+      password: password,
+      password_confirmation: password_confirmation,
+      invitation_token: nil,
+      invitation_accepted_at: Time.current
+    )
+<% if confirmable? -%>
+    self.confirmed_at ||= Time.current # accepting the invite proves the email address
+<% end -%>
+    save
+  end
+end

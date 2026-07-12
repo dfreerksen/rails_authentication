@@ -1,0 +1,74 @@
+module ConfirmableConcern
+  extend ActiveSupport::Concern
+
+  CONFIRMATION_TOKEN_EXPIRES_IN = 24.hours
+<% if reconfirmable? -%>
+
+  included do
+    before_update :postpone_email_address_change, if: :postponing_email_address_change?
+    after_update_commit :deliver_reconfirmation_instructions, if: -> { saved_change_to_unconfirmed_email? && unconfirmed_email.present? }
+  end
+<% end -%>
+
+  class_methods do
+    def find_by_valid_confirmation_token(token)
+      return if token.blank?
+
+      user = find_by(confirmation_token: token)
+      user if user&.confirmation_sent_at&.after?(CONFIRMATION_TOKEN_EXPIRES_IN.ago)
+    end
+  end
+
+  def confirmed?
+    confirmed_at.present?
+  end
+
+  def confirm!
+<% if reconfirmable? -%>
+    @confirming = true
+    self.email_address = unconfirmed_email if unconfirmed_email.present?
+    self.unconfirmed_email = nil
+    self.confirmed_at = Time.current
+    self.confirmation_token = nil
+    self.confirmation_sent_at = nil
+    save!
+  ensure
+    @confirming = false
+<% else -%>
+    update!(confirmed_at: Time.current, confirmation_token: nil, confirmation_sent_at: nil)
+<% end -%>
+  end
+
+  def send_confirmation_instructions
+    generate_confirmation_token!
+    ConfirmationsMailer.confirmation_instructions(self).deliver_later
+  end
+
+  def generate_confirmation_token!
+    update!(confirmation_token: generate_confirmable_token, confirmation_sent_at: Time.current)
+  end
+<% if reconfirmable? -%>
+
+  private
+    def postponing_email_address_change?
+      !@confirming && email_address_changed? && confirmed?
+    end
+
+    def postpone_email_address_change
+      self.unconfirmed_email = email_address
+      self.email_address = email_address_in_database
+      self.confirmation_token = generate_confirmable_token
+      self.confirmation_sent_at = Time.current
+    end
+
+    def deliver_reconfirmation_instructions
+      ConfirmationsMailer.confirmation_instructions(self).deliver_later
+    end
+<% end -%>
+
+  protected
+
+  def generate_confirmable_token
+    SecureRandom.urlsafe_base64(32)
+  end
+end

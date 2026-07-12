@@ -1,0 +1,10 @@
+class ConfirmationsMailer < ApplicationMailer
+  def confirmation_instructions(user)
+    @user = user
+<% if reconfirmable? -%>
+    mail subject: "Confirm your email address", to: user.unconfirmed_email.presence || user.email_address
+<% else -%>
+    mail subject: "Confirm your email address", to: user.email_address
+<% end -%>
+  end
+end

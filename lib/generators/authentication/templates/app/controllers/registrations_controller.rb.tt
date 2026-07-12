@@ -1,0 +1,56 @@
+class RegistrationsController < ApplicationController
+  allow_unauthenticated_access only: %i[ new create ]
+
+  def new
+    @user = User.new
+  end
+
+  def create
+    @user = User.new(user_params)
+
+    if @user.save
+<% if confirmable? -%>
+      @user.send_confirmation_instructions
+      redirect_to new_session_path, notice: "Welcome! Check your email to confirm your account."
+<% else -%>
+      start_new_session_for @user
+      redirect_to after_authentication_url, notice: "Welcome! You have signed up successfully."
+<% end -%>
+    else
+      render :new, status: :unprocessable_content
+    end
+  end
+
+  def edit
+    @user = Current.user
+  end
+
+  def update
+    @user = Current.user
+
+    if @user.update(user_params_for_update)
+      redirect_to edit_registration_path, notice: "Your account has been updated."
+    else
+      render :edit, status: :unprocessable_content
+    end
+  end
+
+  def destroy
+    user = Current.user
+    terminate_session
+    user.destroy
+    redirect_to new_session_path, notice: "Your account has been deleted.", status: :see_other
+  end
+
+  private
+
+  def user_params
+    params.permit(:email_address, :password, :password_confirmation)
+  end
+
+  def user_params_for_update
+    permitted = user_params
+    permitted = permitted.except(:password, :password_confirmation) if permitted[:password].blank?
+    permitted
+  end
+end

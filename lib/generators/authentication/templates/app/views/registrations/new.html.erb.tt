@@ -1,0 +1,21 @@
+<h1>Sign up</h1>
+
+<%%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
+
+<%% if @user.errors.any? %>
+  <ul style="color:red">
+    <%% @user.errors.full_messages.each do |message| %>
+      <li><%%= message %></li>
+    <%% end %>
+  </ul>
+<%% end %>
+
+<%%= form_with url: registration_path do |form| %>
+  <%%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "Enter your email address", value: @user.email_address %><br>
+  <%%= form.password_field :password, required: true, autocomplete: "new-password", placeholder: "Enter a password", maxlength: 72 %><br>
+  <%%= form.password_field :password_confirmation, required: true, autocomplete: "new-password", placeholder: "Repeat the password", maxlength: 72 %><br>
+  <%%= form.submit "Sign up" %>
+<%% end %>
+<br>
+
+<%%= link_to "Sign in", new_session_path %>

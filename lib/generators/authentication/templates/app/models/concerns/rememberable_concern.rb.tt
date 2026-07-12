@@ -1,0 +1,15 @@
+module RememberableConcern
+  extend ActiveSupport::Concern
+
+  def remembered?
+    remember_created_at.present?
+  end
+
+  def remember_me!
+    update!(remember_created_at: Time.current)
+  end
+
+  def forget_me!
+    update!(remember_created_at: nil) if remember_created_at.present?
+  end
+end

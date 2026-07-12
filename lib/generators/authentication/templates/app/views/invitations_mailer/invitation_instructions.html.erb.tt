@@ -1,0 +1,6 @@
+<p>
+  You have been invited. Set your password and activate your account on
+  <%%= link_to "this invitation page", edit_invitation_url(@user.invitation_token) %>.
+
+  This link will expire in <%%= distance_of_time_in_words(0, InvitableConcern::INVITATION_TOKEN_EXPIRES_IN) %>.
+</p>

@@ -1,0 +1,8 @@
+<h1>Resend unlock instructions</h1>
+
+<%%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
+
+<%%= form_with url: unlocks_path do |form| %>
+  <%%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "Enter your email address", value: params[:email_address] %><br>
+  <%%= form.submit "Resend unlock instructions" %>
+<%% end %>

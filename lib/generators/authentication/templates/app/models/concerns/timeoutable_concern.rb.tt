@@ -1,0 +1,9 @@
+module TimeoutableConcern
+  extend ActiveSupport::Concern
+
+  TIMEOUT_IN = 30.minutes
+
+  def timedout?(last_activity_at)
+    last_activity_at.present? && last_activity_at.before?(TIMEOUT_IN.ago)
+  end
+end

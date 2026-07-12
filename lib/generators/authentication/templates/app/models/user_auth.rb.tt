@@ -1,0 +1,18 @@
+class UserAuth < ApplicationRecord
+  # user is optional so failed attempts against unknown email addresses still get recorded
+  belongs_to :user, optional: true
+
+  scope :successful, -> { where(success: true) }
+  scope :failed, -> { where(success: false) }
+
+  def self.record(user, request, success:, failure_reason: nil)
+    create!(
+      user: user,
+      ip: request.remote_ip,
+      user_agent: request.user_agent,
+      referrer: request.referer,
+      success: success,
+      failure_reason: failure_reason
+    )
+  end
+end

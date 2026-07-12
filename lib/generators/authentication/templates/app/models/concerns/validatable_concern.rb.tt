@@ -1,0 +1,40 @@
+module ValidatableConcern
+  extend ActiveSupport::Concern
+
+  EMAIL_ADDRESS_REGEXP = /\A[^@\s]+@[^@\s]+\z/
+  PASSWORD_LENGTH = 6..72
+  PASSWORD_DIGIT_REGEXP = /\d+/
+  PASSWORD_UPPER_REGEXP = /[A-Z]+/
+  PASSWORD_LOWER_REGEXP = /[a-z]+/
+  PASSWORD_SPECIAL_REGEXP = /[^a-zA-Z\d\s]+/
+  PASSWORD_MINIMUM_COMPLEXITY = 2 # Minumum number of complexities to match to be valid
+
+  included do
+    validates :email_address, presence: true,
+      format: { with: EMAIL_ADDRESS_REGEXP },
+      uniqueness: { case_sensitive: false }
+    validates :password, length: { in: PASSWORD_LENGTH }, allow_nil: true
+
+    validate :password_complexity
+  end
+
+  protected
+
+  def password_complexity
+    return if password.blank? || valid_password_complexity?
+
+    errors.add(:password, "must meet password complexity standards")
+  end
+
+  def valid_password_complexity?
+    return false if password.blank?
+
+    conditions = [
+      PASSWORD_DIGIT_REGEXP.match?(password),
+      PASSWORD_UPPER_REGEXP.match?(password),
+      PASSWORD_LOWER_REGEXP.match?(password),
+      PASSWORD_SPECIAL_REGEXP.match?(password)
+    ]
+    conditions.count(true) >= PASSWORD_MINIMUM_COMPLEXITY
+  end
+end

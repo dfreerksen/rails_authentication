@@ -1,0 +1,48 @@
+module LockableConcern
+  extend ActiveSupport::Concern
+
+  MAXIMUM_ATTEMPTS = 5
+  UNLOCK_IN = 1.hour
+
+  class_methods do
+    def find_by_valid_unlock_token(token)
+      return if token.blank?
+
+      find_by(unlock_token: token)
+    end
+  end
+
+  # Locks expire on their own after UNLOCK_IN; the stale lock is cleared on the
+  # next successful sign-in by reset_failed_attempts!.
+  def locked?
+    locked_at.present? && locked_at.after?(UNLOCK_IN.ago)
+  end
+
+  def register_failed_attempt!
+    increment!(:failed_attempts)
+    lock! if failed_attempts >= MAXIMUM_ATTEMPTS && !locked?
+  end
+
+  def lock!
+    update!(locked_at: Time.current, unlock_token: generate_lockable_token)
+    send_unlock_instructions
+  end
+
+  def unlock!
+    update!(locked_at: nil, unlock_token: nil, failed_attempts: 0)
+  end
+
+  def reset_failed_attempts!
+    update!(failed_attempts: 0, locked_at: nil, unlock_token: nil) if failed_attempts.positive? || locked_at.present?
+  end
+
+  def send_unlock_instructions
+    UnlocksMailer.unlock_instructions(self).deliver_later
+  end
+
+  protected
+
+  def generate_lockable_token
+    SecureRandom.urlsafe_base64(32)
+  end
+end

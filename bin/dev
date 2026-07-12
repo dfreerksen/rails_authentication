@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# Start and run the app locally using the dummy app
+set -euo pipefail
+cd "$(dirname "$0")/.."
+ROOT=$(pwd)
+
+if [ ! -d spec/dummy ]; then
+  bin/prepare_dummy
+fi
+
+cd spec/dummy
+
+# The dummy app boots against the gem's own Gemfile (which has rails, bcrypt, sqlite3),
+# so its generated Gemfile is never bundled.
+export BUNDLE_GEMFILE="$ROOT/Gemfile"
+
+# prepare_dummy only migrates the test database; the server runs in development.
+bundle exec rails db:prepare
+
+exec bundle exec rails server "$@"

@@ -1,0 +1,64 @@
+class SessionsController < ApplicationController
+  allow_unauthenticated_access only: %i[ new create ]
+  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to new_session_path, alert: "Try again later." }
+
+  def new
+  end
+
+  def create
+    user = User.authenticate_by(params.permit(:email_address, :password))
+
+    if user.nil?
+<% if lockable? || trackable? -%>
+      account = User.find_by(email_address: params[:email_address])
+<% end -%>
+<% if lockable? -%>
+      account&.register_failed_attempt!
+<% end -%>
+<% if trackable? -%>
+      record_authentication_attempt(account, success: false, failure_reason: "invalid_credentials")
+<% end -%>
+      redirect_to new_session_path, alert: "Try another email address or password."
+<% if lockable? -%>
+    elsif user.locked?
+<% if trackable? -%>
+      record_authentication_attempt(user, success: false, failure_reason: "locked")
+<% end -%>
+      redirect_to new_session_path, alert: "Your account is locked. Check your email for unlock instructions."
+<% end -%>
+<% if confirmable? -%>
+    elsif !user.confirmed?
+<% if trackable? -%>
+      record_authentication_attempt(user, success: false, failure_reason: "unconfirmed")
+<% end -%>
+      redirect_to new_session_path, alert: "You must confirm your email address before signing in."
+<% end -%>
+    else
+<% if lockable? -%>
+      user.reset_failed_attempts!
+<% end -%>
+<% if trackable? -%>
+      record_authentication_attempt(user, success: true)
+<% end -%>
+<% if rememberable? -%>
+      start_new_session_for user, remember: params[:remember_me] == "1"
+<% else -%>
+      start_new_session_for user
+<% end -%>
+      redirect_to after_authentication_url
+    end
+  end
+
+  def destroy
+    terminate_session
+    redirect_to new_session_path, status: :see_other
+  end
+<% if trackable? -%>
+
+  private
+
+  def record_authentication_attempt(user, success:, failure_reason: nil)
+    UserAuth.record(user, request, success: success, failure_reason: failure_reason)
+  end
+<% end -%>
+end

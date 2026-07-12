@@ -1,0 +1,14 @@
+class CreateUserAuths < ActiveRecord::Migration<%= migration_version %>
+  def change
+    create_table :user_auths do |t|
+      t.references :user, foreign_key: true
+      t.string :ip
+      t.string :user_agent
+      t.string :referrer
+      t.boolean :success, default: false, null: false
+      t.string :failure_reason
+
+      t.timestamps
+    end
+  end
+end

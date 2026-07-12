@@ -1,0 +1,6 @@
+class InvitationsMailer < ApplicationMailer
+  def invitation_instructions(user)
+    @user = user
+    mail subject: "You have been invited", to: user.email_address
+  end
+end

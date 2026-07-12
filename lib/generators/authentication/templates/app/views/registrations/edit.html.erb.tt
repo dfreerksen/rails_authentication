@@ -1,0 +1,22 @@
+<h1>Your account</h1>
+
+<%%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
+<%%= tag.div(flash[:notice], style: "color:green") if flash[:notice] %>
+
+<%% if @user.errors.any? %>
+  <ul style="color:red">
+    <%% @user.errors.full_messages.each do |message| %>
+      <li><%%= message %></li>
+    <%% end %>
+  </ul>
+<%% end %>
+
+<%%= form_with url: registration_path, method: :patch do |form| %>
+  <%%= form.email_field :email_address, required: true, autocomplete: "username", value: @user.email_address %><br>
+  <%%= form.password_field :password, autocomplete: "new-password", placeholder: "New password (leave blank to keep current)", maxlength: 72 %><br>
+  <%%= form.password_field :password_confirmation, autocomplete: "new-password", placeholder: "Repeat new password", maxlength: 72 %><br>
+  <%%= form.submit "Update" %>
+<%% end %>
+<br>
+
+<%%= button_to "Delete my account", registration_path, method: :delete, data: { turbo_confirm: "Are you sure?" } %>

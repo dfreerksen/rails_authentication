@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Regenerates spec/dummy by running the REAL authentication generator against a fresh
+# Rails app, so the request specs always exercise exactly what the templates produce.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+ROOT=$(pwd)
+
+rm -rf spec/dummy
+
+bundle exec rails new spec/dummy \
+  --skip-git --skip-docker --skip-ci --skip-kamal --skip-solid \
+  --skip-javascript --skip-hotwire --skip-jbuilder \
+  --skip-action-mailbox --skip-action-text --skip-active-storage --skip-action-cable \
+  --skip-bootsnap --skip-dev-gems --skip-rubocop --skip-brakeman --skip-thruster \
+  --skip-test --skip-system-test --skip-asset-pipeline --skip-bundle
+
+cd spec/dummy
+
+# The dummy app boots against the gem's own Gemfile (which has rails, bcrypt, sqlite3),
+# so its generated Gemfile is never bundled.
+export BUNDLE_GEMFILE="$ROOT/Gemfile"
+
+# A root route so after_authentication_url has somewhere to land.
+cat > app/controllers/home_controller.rb <<'RUBY'
+class HomeController < ApplicationController
+  def index
+    render plain: "Home"
+  end
+end
+RUBY
+ruby -i -pe 'sub(/^Rails\.application\.routes\.draw do$/) { "#{$&}\n  root \"home#index\"" }' config/routes.rb
+
+bundle exec rails generate authentication --force
+RAILS_ENV=test bundle exec rails db:migrate
+
+echo
+echo "spec/dummy ready — run: bundle exec rake spec:requests"

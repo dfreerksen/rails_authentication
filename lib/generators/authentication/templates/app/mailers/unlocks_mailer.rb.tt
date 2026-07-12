@@ -1,0 +1,6 @@
+class UnlocksMailer < ApplicationMailer
+  def unlock_instructions(user)
+    @user = user
+    mail subject: "Unlock your account", to: user.email_address
+  end
+end

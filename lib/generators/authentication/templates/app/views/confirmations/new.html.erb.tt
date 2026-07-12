@@ -1,0 +1,8 @@
+<h1>Resend confirmation instructions</h1>
+
+<%%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
+
+<%%= form_with url: confirmations_path do |form| %>
+  <%%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "Enter your email address", value: params[:email_address] %><br>
+  <%%= form.submit "Resend confirmation instructions" %>
+<%% end %>

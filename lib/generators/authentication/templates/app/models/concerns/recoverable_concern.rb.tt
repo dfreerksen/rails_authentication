@@ -1,0 +1,33 @@
+module RecoverableConcern
+  extend ActiveSupport::Concern
+
+  RESET_PASSWORD_TOKEN_EXPIRES_IN = 4.hours
+
+  class_methods do
+    def find_by_valid_reset_password_token(token)
+      return if token.blank?
+
+      user = find_by(reset_password_token: token)
+      user if user&.reset_password_sent_at&.after?(RESET_PASSWORD_TOKEN_EXPIRES_IN.ago)
+    end
+  end
+
+  def send_reset_password_instructions
+    generate_reset_password_token!
+    PasswordsMailer.reset(self).deliver_later
+  end
+
+  def generate_reset_password_token!
+    update!(reset_password_token: generate_recoverable_token, reset_password_sent_at: Time.current)
+  end
+
+  def clear_reset_password_token!
+    update!(reset_password_token: nil, reset_password_sent_at: nil)
+  end
+
+  protected
+
+  def generate_recoverable_token
+    SecureRandom.urlsafe_base64(32)
+  end
+end

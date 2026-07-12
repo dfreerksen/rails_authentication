@@ -1,0 +1,4 @@
+You can confirm your email address on
+<%%= confirmation_url(@user.confirmation_token) %>
+
+This link will expire in <%%= distance_of_time_in_words(0, ConfirmableConcern::CONFIRMATION_TOKEN_EXPIRES_IN) %>.

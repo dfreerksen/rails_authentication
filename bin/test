@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+bundle exec rake dummy:prepare
+bundle exec rspec spec

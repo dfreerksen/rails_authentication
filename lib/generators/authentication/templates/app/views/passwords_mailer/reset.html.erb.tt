@@ -1,0 +1,6 @@
+<p>
+  You can reset your password on
+  <%%= link_to "this password reset page", edit_password_url(@user.reset_password_token) %>.
+
+  This link will expire in <%%= distance_of_time_in_words(0, RecoverableConcern::RESET_PASSWORD_TOKEN_EXPIRES_IN) %>.
+</p>
