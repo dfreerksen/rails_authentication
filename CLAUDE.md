@@ -5,9 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this gem is
 
 `rails_authentication` extends Rails 8's built-in `bin/rails generate authentication` command to
-also install nine Devise-style features (Confirmable, Recoverable, Registerable, Rememberable,
+also install Devise-style features (Confirmable, Recoverable, Registerable, Rememberable,
 Trackable, Timeoutable, Validatable, Lockable, Invitable), each opt-out-able via
-`--skip-<feature>`. All code is generated into the host app; the gem has no runtime footprint.
+`--skip-<feature>`, plus one opt-in feature: MagicLink (passwordless email sign-in via
+`--magic-link`). All code is generated into the host app; the gem has no runtime footprint.
 TODO.md is the original product spec.
 
 ## Commands
@@ -41,8 +42,11 @@ loads both (it broke the request specs before the rename).
 One generator class; Thor runs its public methods in definition order:
 `install_base_authentication` (invokes Rails core's `rails:authentication` in-process — User/
 Session/Current, SessionsController, PasswordsController, Authentication concern, migrations,
-routes) → one `install_<feature>` step per feature (each early-returns on its skip flag and
-delegates to a module in `lib/generators/authentication/features/`) → `customize_session_layer`.
+routes) → one `install_<feature>` step per feature (each early-returns on its skip flag — or, for
+MagicLink, on the absence of the opt-in flag — and delegates to a module in
+`lib/generators/authentication/features/`) → `customize_session_layer`. MagicLink is deliberately
+NOT in `FEATURES` (that constant drives the `--skip-<feature>` options and `<feature>?` query
+methods); its `--magic-link` option and `magic_link?` helper are declared separately.
 
 Feature helper methods live in included modules deliberately: module methods never trigger Thor's
 `method_added` command registration, so only the class's own public methods become generation
@@ -56,8 +60,10 @@ files (`sessions_controller.rb`, `concerns/authentication.rb`, `views/sessions/n
 templates full of generation-time ERB conditionals (`<% if lockable? %>`), `force: true` — safe
 because the base copies were written moments earlier in the same run. Recoverable similarly
 overwrites `passwords_controller.rb` + `PasswordsMailer` (DB-backed tokens replace the base
-stateless `generates_token_for`). In view/mailer templates, `<%%` escapes runtime ERB;
-plain `<%` is evaluated at generation time.
+stateless `generates_token_for`). MagicLink's own `magic_links_controller.rb` template carries the
+same generation-time conditionals so its sign-in path honors Lockable/Confirmable/Invitable/
+Trackable, and the sessions view template links to it behind `<% if magic_link? %>`. In view/
+mailer templates, `<%%` escapes runtime ERB; plain `<%` is evaluated at generation time.
 
 Every other feature only adds files plus one `include <Feature>Concern` line injected into
 `app/models/user.rb`. Migrations use `migration_template` (via
@@ -75,7 +81,8 @@ whole-file comparison — use Regexps.
 
 **Request specs** (`spec/requests/`) exercise the generated code over HTTP against `spec/dummy`, a
 real Rails app **produced by the real generator** via `bin/prepare_dummy` (gitignored, never
-hand-edited, so it can't drift from the templates). The dummy boots against this gem's own Gemfile
+hand-edited, so it can't drift from the templates; the script passes `--magic-link` so the opt-in
+feature is exercised too). The dummy boots against this gem's own Gemfile
 (`BUNDLE_GEMFILE` is exported by the script; that's why `bcrypt` is in the gem's Gemfile).
 `spec/rails_helper.rb` boots it and forces the inline ActiveJob adapter so mailer specs can assert
 on `ActionMailer::Base.deliveries`. If a template changes, rerun `rake dummy:prepare` before
