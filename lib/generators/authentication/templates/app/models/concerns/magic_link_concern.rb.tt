@@ -1,0 +1,34 @@
+module MagicLinkConcern
+  extend ActiveSupport::Concern
+
+  MAGIC_LINK_EXPIRES_IN = 20.minutes
+
+  class_methods do
+    def find_by_valid_magic_link_token(token)
+      return if token.blank?
+
+      user = find_by(magic_link_token: token)
+      user if user&.magic_link_sent_at&.after?(MAGIC_LINK_EXPIRES_IN.ago)
+    end
+  end
+
+  def send_magic_link
+    generate_magic_link_token!
+    MagicLinksMailer.magic_link(self).deliver_later
+  end
+
+  def generate_magic_link_token!
+    update!(magic_link_token: build_magic_link_token, magic_link_sent_at: Time.current)
+  end
+
+  # Tokens are single-use: consumed on successful sign-in.
+  def consume_magic_link_token!
+    update!(magic_link_token: nil, magic_link_sent_at: nil)
+  end
+
+  protected
+
+  def build_magic_link_token
+    SecureRandom.urlsafe_base64(32)
+  end
+end

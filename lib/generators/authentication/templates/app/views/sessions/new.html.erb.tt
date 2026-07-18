@@ -11,7 +11,10 @@
 <%% end %>
 <br>
 
-<%%= link_to "Forgot password?", new_password_path %>
+<% if magic_link? -%>
+<br><%%= link_to "Sign in with magic link", new_magic_link_path %>
+<% end -%>
+<br><%%= link_to "Forgot password?", new_password_path %>
 <% if registerable? -%>
 <br><%%= link_to "Sign up", new_registration_path %>
 <% end -%>

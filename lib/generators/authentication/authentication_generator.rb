@@ -11,6 +11,7 @@ require_relative "features/timeoutable"
 require_relative "features/validatable"
 require_relative "features/lockable"
 require_relative "features/invitable"
+require_relative "features/magic_link"
 
 module RailsAuthentication
   module Generators
@@ -42,6 +43,7 @@ module RailsAuthentication
       include Features::Validatable
       include Features::Lockable
       include Features::Invitable
+      include Features::MagicLink
 
       source_root File.expand_path("templates", __dir__)
 
@@ -52,6 +54,11 @@ module RailsAuthentication
 
       class_option :reconfirmable, type: :boolean, default: false,
         desc: "Confirmable: postpone email address changes until reconfirmed (adds unconfirmed_email column)"
+
+      # Unlike the FEATURES above (default-on, opt-out via --skip-<feature>),
+      # magic link is opt-in: it changes the sign-in UX, so it must be requested.
+      class_option :magic_link, type: :boolean, default: false,
+        desc: "Add passwordless magic link sign-in (opt-in)"
 
       def install_base_authentication
         say "Running Rails' built-in authentication generator", :green
@@ -94,6 +101,10 @@ module RailsAuthentication
         generate_invitable if invitable?
       end
 
+      def install_magic_link
+        generate_magic_link if magic_link?
+      end
+
       # Runs after every feature install so the blank line separates the concern
       # includes (if any) from the rest of the class body, no matter which features
       # are enabled.
@@ -118,6 +129,10 @@ module RailsAuthentication
 
         def reconfirmable?
           confirmable? && options[:reconfirmable]
+        end
+
+        def magic_link?
+          options[:magic_link]
         end
 
         def include_concern_in_user(concern)

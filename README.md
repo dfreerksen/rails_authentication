@@ -17,6 +17,7 @@ gem extends that same command to also install:
 | **Validatable** | Email format/uniqueness, password length, and password complexity validations |
 | **Lockable** | Locks the account after 5 failed attempts; unlock via email or automatically after 1 hour |
 | **Invitable** | Invite users by email; blocks sign-in until they accept by choosing their own password |
+| **MagicLink** (opt-in) | Passwordless magic link sign-in via email — DB-backed, single-use, expiring tokens |
 
 Everything is **generated into your app** as plain, readable code — controllers, views, mailers,
 migrations, and one model concern per feature. There is no runtime dependency on this gem: after
@@ -27,7 +28,7 @@ This gem is meant to be installed temporarily. Install it long enough to run the
 ## Installation
 
 Requires Rails >= 8.0 and, for the email-driven features (Confirmable, Recoverable, Lockable,
-Invitable), Action Mailer.
+Invitable, MagicLink), Action Mailer.
 
 ```ruby
 # Gemfile
@@ -55,6 +56,18 @@ Available flags: `--skip-confirmable`, `--skip-recoverable`, `--skip-registerabl
 `--skip-lockable`, `--skip-invitable`, and `--reconfirmable` (Confirmable: postpone email address
 changes until the new address is confirmed, via an `unconfirmed_email` column).
 
+MagicLink is the one **opt-in** feature — it changes the sign-in UX, so you have to ask for it:
+
+```sh
+bin/rails generate authentication --magic-link
+```
+
+It adds a "Sign in with magic link" link to the sign-in page, leading to an email-only form. The
+emailed link signs the user in directly; tokens are DB-backed, single-use, and expire after
+20 minutes (`MagicLinkConcern::MAGIC_LINK_EXPIRES_IN`). The magic link flow honors the other
+enabled features: locked, unconfirmed, or invitation-pending accounts still can't sign in, and
+Trackable records the attempt.
+
 Each feature adds a single `include <Feature>Concern` line to `app/models/user.rb`; all of its
 model behavior lives in `app/models/concerns/<feature>_concern.rb`. Tunables are plain constants in
 the generated concerns — e.g. `TimeoutableConcern::TIMEOUT_IN`, `LockableConcern::MAXIMUM_ATTEMPTS`,
@@ -69,6 +82,7 @@ resource  :registration, only: %i[ new create edit update destroy ]
 resources :confirmations, only: %i[ new create show ], param: :token
 resources :unlocks,       only: %i[ new create show ], param: :token
 resources :invitations,   only: %i[ new create edit update ], param: :token
+resources :magic_links,   only: %i[ new create show ], param: :token   # with --magic-link
 resource  :session                      # from the base generator
 resources :passwords, param: :token     # from the base generator
 ```
@@ -87,8 +101,8 @@ resources :passwords, param: :token     # from the base generator
 
 ## Future Plans
 
-- OTP (Google Authenticator)
-- Passwordless (code emailed)
+- OTT (Email code)
+- Passkey
 
 ## Development
 
