@@ -1,6 +1,17 @@
 <%%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
 <%%= tag.div(flash[:notice], style: "color:green") if flash[:notice] %>
 
+<% if ott? -%>
+<%% if params[:with_password].blank? %>
+<%%= form_with url: ott_path do |form| %>
+  <%%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "Enter your email address", value: params[:email_address] %><br>
+  <%%= form.submit "Email me a sign-in code" %>
+<%% end %>
+<br>
+
+<br><%%= link_to "Sign in with password instead", new_session_path(with_password: 1) %>
+<%% else %>
+<% end -%>
 <%%= form_with url: session_path do |form| %>
   <%%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "Enter your email address", value: params[:email_address] %><br>
   <%%= form.password_field :password, required: true, autocomplete: "current-password", placeholder: "Enter your password", maxlength: 72 %><br>
@@ -10,6 +21,11 @@
   <%%= form.submit "Sign in" %>
 <%% end %>
 <br>
+<% if ott? -%>
+
+<br><%%= link_to "Sign in with a one-time code instead", new_session_path %>
+<%% end %>
+<% end -%>
 
 <% if magic_link? -%>
 <br><%%= link_to "Sign in with magic link", new_magic_link_path %>

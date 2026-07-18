@@ -1,0 +1,50 @@
+module OttConcern
+  extend ActiveSupport::Concern
+
+  OTT_EXPIRES_IN = 10.minutes
+  OTT_MAX_ATTEMPTS = 5
+  OTT_CODE_LENGTH = 6
+
+  def send_ott
+    generate_ott!
+    OttsMailer.ott(self).deliver_later
+  end
+
+  def generate_ott!
+    update!(ott_code: build_ott_code, ott_sent_at: Time.current, ott_attempts: 0)
+  end
+
+  # Returns :valid, :invalid, :exhausted, or :expired. Codes are single-use:
+  # consumed on successful sign-in, and voided once OTT_MAX_ATTEMPTS wrong
+  # codes have been entered.
+  def verify_ott(code)
+    return :expired unless ott_active?
+
+    if ActiveSupport::SecurityUtils.secure_compare(ott_code, code.to_s)
+      :valid
+    else
+      increment!(:ott_attempts)
+
+      if ott_attempts >= OTT_MAX_ATTEMPTS
+        consume_ott!
+        :exhausted
+      else
+        :invalid
+      end
+    end
+  end
+
+  def consume_ott!
+    update!(ott_code: nil, ott_sent_at: nil, ott_attempts: 0)
+  end
+
+  protected
+
+  def ott_active?
+    ott_code.present? && ott_sent_at&.after?(OTT_EXPIRES_IN.ago)
+  end
+
+  def build_ott_code
+    SecureRandom.random_number(10**OTT_CODE_LENGTH).to_s.rjust(OTT_CODE_LENGTH, "0")
+  end
+end

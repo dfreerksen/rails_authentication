@@ -1,0 +1,6 @@
+class OttsMailer < ApplicationMailer
+  def ott(user)
+    @user = user
+    mail subject: "Your sign-in code", to: user.email_address
+  end
+end

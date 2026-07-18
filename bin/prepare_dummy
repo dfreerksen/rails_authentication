@@ -30,8 +30,8 @@ end
 RUBY
 ruby -i -pe 'sub(/^Rails\.application\.routes\.draw do$/) { "#{$&}\n  root \"home#index\"" }' config/routes.rb
 
-# --magic-link is opt-in; enabled here so the request specs can exercise it.
-bundle exec rails generate authentication --magic-link --force
+# --magic-link and --ott are opt-in; enabled here so the request specs can exercise them.
+bundle exec rails generate authentication --magic-link --ott --force
 RAILS_ENV=test bundle exec rails db:migrate
 
 echo

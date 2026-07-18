@@ -18,6 +18,7 @@ gem extends that same command to also install:
 | **Lockable** | Locks the account after 5 failed attempts; unlock via email or automatically after 1 hour |
 | **Invitable** | Invite users by email; blocks sign-in until they accept by choosing their own password |
 | **MagicLink** (opt-in) | Passwordless magic link sign-in via email — DB-backed, single-use, expiring tokens |
+| **Ott** (opt-in) | Passwordless sign-in via an emailed 6-digit one-time code — replaces the password sign-in form |
 
 Everything is **generated into your app** as plain, readable code — controllers, views, mailers,
 migrations, and one model concern per feature. There is no runtime dependency on this gem: after
@@ -28,7 +29,7 @@ This gem is meant to be installed temporarily. Install it long enough to run the
 ## Installation
 
 Requires Rails >= 8.0 and, for the email-driven features (Confirmable, Recoverable, Lockable,
-Invitable, MagicLink), Action Mailer.
+Invitable, MagicLink, Ott), Action Mailer.
 
 ```ruby
 # Gemfile
@@ -56,24 +57,37 @@ Available flags: `--skip-confirmable`, `--skip-recoverable`, `--skip-registerabl
 `--skip-lockable`, `--skip-invitable`, and `--reconfirmable` (Confirmable: postpone email address
 changes until the new address is confirmed, via an `unconfirmed_email` column).
 
-MagicLink is the one **opt-in** feature — it changes the sign-in UX, so you have to ask for it:
+MagicLink and Ott are **opt-in** features — they change the sign-in UX, so you have to ask for
+them:
 
 ```sh
 bin/rails generate authentication --magic-link
+bin/rails generate authentication --ott
 ```
 
-It adds a "Sign in with magic link" link to the sign-in page, leading to an email-only form. The
-emailed link signs the user in directly; tokens are DB-backed, single-use, and expire after
-20 minutes (`MagicLinkConcern::MAGIC_LINK_EXPIRES_IN`). The magic link flow honors the other
-enabled features: locked, unconfirmed, or invitation-pending accounts still can't sign in, and
-Trackable records the attempt.
+MagicLink adds a "Sign in with magic link" link to the sign-in page, leading to an email-only
+form. The emailed link signs the user in directly; tokens are DB-backed, single-use, and expire
+after 20 minutes (`MagicLinkConcern::MAGIC_LINK_EXPIRES_IN`).
+
+Ott replaces the sign-in form: the user enters only their email address, receives a 6-digit code
+(`OttConcern::OTT_CODE_LENGTH`) by email, and enters it on a second screen — one single-digit
+input per digit with auto-advance and paste/autofill support (plain inline JavaScript, no
+framework required). A "Sign in with password
+instead" link (`/session/new?with_password=1`) toggles back to the classic password form at
+runtime. Codes are DB-backed, single-use, expire after 10 minutes (`OttConcern::OTT_EXPIRES_IN`),
+and are voided after 5 wrong entries (`OttConcern::OTT_MAX_ATTEMPTS`). The password machinery
+(SessionsController#create, Recoverable, Registerable) stays generated and functional — only the
+sign-in UI changes.
+
+Both flows honor the other enabled features: locked, unconfirmed, or invitation-pending accounts
+still can't sign in, and Trackable records the attempt.
 
 Each feature adds a single `include <Feature>Concern` line to `app/models/user.rb`; all of its
 model behavior lives in `app/models/concerns/<feature>_concern.rb`. Tunables are plain constants in
 the generated concerns — e.g. `TimeoutableConcern::TIMEOUT_IN`, `LockableConcern::MAXIMUM_ATTEMPTS`,
 `LockableConcern::UNLOCK_IN`, `ConfirmableConcern::CONFIRMATION_TOKEN_EXPIRES_IN`,
-`ValidatableConcern::PASSWORD_LENGTH`, `ValidatableConcern::PASSWORD_MINIMUM_COMPLEXITY` — edit them
-there. Concerns keep the model clean.
+`ValidatableConcern::PASSWORD_LENGTH`, `ValidatableConcern::PASSWORD_MINIMUM_COMPLEXITY`,
+`OttConcern::OTT_CODE_LENGTH` — edit them there. Concerns keep the model clean.
 
 ### Generated routes
 
@@ -83,6 +97,7 @@ resources :confirmations, only: %i[ new create show ], param: :token
 resources :unlocks,       only: %i[ new create show ], param: :token
 resources :invitations,   only: %i[ new create edit update ], param: :token
 resources :magic_links,   only: %i[ new create show ], param: :token   # with --magic-link
+resource  :ott,           only: %i[ create edit update ]               # with --ott
 resource  :session                      # from the base generator
 resources :passwords, param: :token     # from the base generator
 ```
@@ -101,7 +116,6 @@ resources :passwords, param: :token     # from the base generator
 
 ## Future Plans
 
-- OTT (Email code)
 - Passkey
 
 ## Development

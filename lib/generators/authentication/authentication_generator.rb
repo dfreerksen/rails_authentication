@@ -12,6 +12,7 @@ require_relative "features/validatable"
 require_relative "features/lockable"
 require_relative "features/invitable"
 require_relative "features/magic_link"
+require_relative "features/ott"
 
 module RailsAuthentication
   module Generators
@@ -44,6 +45,7 @@ module RailsAuthentication
       include Features::Lockable
       include Features::Invitable
       include Features::MagicLink
+      include Features::Ott
 
       source_root File.expand_path("templates", __dir__)
 
@@ -59,6 +61,12 @@ module RailsAuthentication
       # magic link is opt-in: it changes the sign-in UX, so it must be requested.
       class_option :magic_link, type: :boolean, default: false,
         desc: "Add passwordless magic link sign-in (opt-in)"
+
+      # Also opt-in: replaces the sign-in form with an email-only form that
+      # emails a 6-digit one-time code, entered on a second screen. Password
+      # machinery stays generated and functional.
+      class_option :ott, type: :boolean, default: false,
+        desc: "Add one-time token (emailed 6-digit code) sign-in (opt-in)"
 
       def install_base_authentication
         say "Running Rails' built-in authentication generator", :green
@@ -105,6 +113,10 @@ module RailsAuthentication
         generate_magic_link if magic_link?
       end
 
+      def install_ott
+        generate_ott if ott?
+      end
+
       # Runs after every feature install so the blank line separates the concern
       # includes (if any) from the rest of the class body, no matter which features
       # are enabled.
@@ -133,6 +145,10 @@ module RailsAuthentication
 
         def magic_link?
           options[:magic_link]
+        end
+
+        def ott?
+          options[:ott]
         end
 
         def include_concern_in_user(concern)

@@ -1,0 +1,95 @@
+class OttsController < ApplicationController
+  allow_unauthenticated_access
+  rate_limit to: 10, within: 3.minutes, only: %i[ create update ], with: -> { redirect_to new_session_path, alert: "Try again later." }
+
+  def create
+    email_address = params[:email_address].presence || session[:ott_email_address]
+    user = User.find_by(email_address: email_address)
+    user&.send_ott
+    session[:ott_email_address] = email_address
+
+    redirect_to edit_ott_path, notice: "We've emailed you a sign-in code (if a user with that email address exists)."
+  end
+
+  def edit
+    redirect_to new_session_path if session[:ott_email_address].blank?
+  end
+
+  def update
+    user = User.find_by(email_address: session[:ott_email_address])
+
+    case user && user.verify_ott(params[:code])
+    when nil, :expired
+      redirect_to new_session_path, alert: "Your sign-in code is invalid or has expired. Request a new one."
+    when :exhausted
+<% if trackable? -%>
+      record_authentication_attempt(user, success: false, failure_reason: "ott_attempts_exhausted")
+<% end -%>
+      redirect_to new_session_path, alert: "Too many incorrect attempts. Request a new code."
+    when :invalid
+<% if trackable? -%>
+      record_authentication_attempt(user, success: false, failure_reason: "invalid_ott")
+<% end -%>
+      redirect_to edit_ott_path, alert: "Incorrect code. Try again."
+    else
+      complete_ott_sign_in(user)
+    end
+  end
+
+  private
+
+  def complete_ott_sign_in(user)
+<% if lockable? -%>
+    if user.locked?
+<% if trackable? -%>
+      record_authentication_attempt(user, success: false, failure_reason: "locked")
+<% end -%>
+      return redirect_to new_session_path, alert: "Your account is locked. Check your email for unlock instructions."
+    end
+<% end -%>
+<% if confirmable? -%>
+    unless user.confirmed?
+<% if trackable? -%>
+      record_authentication_attempt(user, success: false, failure_reason: "unconfirmed")
+<% end -%>
+      return redirect_to new_session_path, alert: "You must confirm your email address before signing in."
+    end
+<% end -%>
+<% if invitable? -%>
+    if user.invitation_pending?
+<% if trackable? -%>
+      record_authentication_attempt(user, success: false, failure_reason: "invitation_pending")
+<% end -%>
+      return redirect_to new_session_path, alert: "You must accept your invitation before signing in."
+    end
+<% end -%>
+    # Add your own authentication restrictions specific to your application
+    # if user.deleted_at.present?
+<% if trackable? -%>
+    #   record_authentication_attempt(user, success: false, failure_reason: "soft_deleted")
+<% end -%>
+    #   return redirect_to new_session_path, alert: "Your account is not available."
+    # end
+
+    user.consume_ott!
+    session.delete(:ott_email_address)
+<% if lockable? -%>
+    user.reset_failed_attempts!
+<% end -%>
+<% if trackable? -%>
+    record_authentication_attempt(user, success: true)
+<% end -%>
+<% if rememberable? -%>
+    start_new_session_for user, remember: params[:remember_me] == "1"
+<% else -%>
+    start_new_session_for user
+<% end -%>
+    redirect_to after_authentication_url
+  end
+<% if trackable? -%>
+
+  def record_authentication_attempt(user, success:, failure_reason: nil)
+    UserAuth.record(user, request, success: success, failure_reason: failure_reason)
+  end
+<% end -%>
+end

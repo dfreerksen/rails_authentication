@@ -1,0 +1,79 @@
+<h1>Enter your sign-in code</h1>
+
+<%%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
+<%%= tag.div(flash[:notice], style: "color:green") if flash[:notice] %>
+
+<p>
+  We emailed a <%%= OttConcern::OTT_CODE_LENGTH %>-digit code to <%%= session[:ott_email_address] %>.
+  It expires in <%%= distance_of_time_in_words(0, OttConcern::OTT_EXPIRES_IN) %>.
+</p>
+
+<%%= form_with url: ott_path, method: :patch do |form| %>
+  <%%= form.hidden_field :code, id: "ott-code" %>
+  <div id="ott-digits">
+    <%% OttConcern::OTT_CODE_LENGTH.times do |i| %>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="<%%= OttConcern::OTT_CODE_LENGTH %>" required
+             autocomplete="<%%= i.zero? ? "one-time-code" : "off" %>"
+             aria-label="Digit <%%= i + 1 %>" <%%= "autofocus" if i.zero? %>
+             style="width:2em;text-align:center;font-size:1.5em">
+    <%% end %>
+  </div>
+  <br>
+<% if rememberable? -%>
+  <%%= form.check_box :remember_me %> <%%= form.label :remember_me, "Remember me" %><br>
+<% end -%>
+  <%%= form.submit "Sign in" %>
+<%% end %>
+<br>
+
+<%%= button_to "Resend code", ott_path, method: :post %>
+
+<script>
+  (function() {
+    var boxes = Array.prototype.slice.call(document.querySelectorAll("#ott-digits input"));
+    var hidden = document.getElementById("ott-code");
+
+    function sync() {
+      hidden.value = boxes.map(function(box) { return box.value; }).join("");
+    }
+
+    // Distributes a string of digits across the boxes, starting at `start`.
+    function fill(text, start) {
+      var digits = text.replace(/\D/g, "").slice(0, boxes.length - start).split("");
+      digits.forEach(function(digit, i) { boxes[start + i].value = digit; });
+      boxes[Math.min(start + digits.length, boxes.length - 1)].focus();
+      sync();
+    }
+
+    boxes.forEach(function(box, i) {
+      box.addEventListener("input", function() {
+        // A multi-character value means a paste or OS one-time-code autofill.
+        if (box.value.length > 1) return fill(box.value, i);
+
+        box.value = box.value.replace(/\D/g, "");
+        if (box.value && i < boxes.length - 1) boxes[i + 1].focus();
+        sync();
+      });
+
+      box.addEventListener("keydown", function(event) {
+        if (event.key === "Backspace" && !box.value && i > 0) {
+          event.preventDefault();
+          boxes[i - 1].value = "";
+          boxes[i - 1].focus();
+          sync();
+        } else if (event.key === "ArrowLeft" && i > 0) {
+          event.preventDefault();
+          boxes[i - 1].focus();
+        } else if (event.key === "ArrowRight" && i < boxes.length - 1) {
+          event.preventDefault();
+          boxes[i + 1].focus();
+        }
+      });
+
+      box.addEventListener("paste", function(event) {
+        event.preventDefault();
+        fill((event.clipboardData || window.clipboardData).getData("text"), 0);
+      });
+    });
+  })();
+</script>
