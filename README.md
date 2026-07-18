@@ -16,7 +16,7 @@ gem extends that same command to also install:
 | **Timeoutable** | Expires sessions after 30 minutes of inactivity |
 | **Validatable** | Email format/uniqueness, password length, and password complexity validations |
 | **Lockable** | Locks the account after 5 failed attempts; unlock via email or automatically after 1 hour |
-| **Invitable** | Invite users by email; they accept by choosing their own password |
+| **Invitable** | Invite users by email; blocks sign-in until they accept by choosing their own password |
 
 Everything is **generated into your app** as plain, readable code — controllers, views, mailers,
 migrations, and one model concern per feature. There is no runtime dependency on this gem: after

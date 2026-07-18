@@ -33,6 +33,19 @@ class SessionsController < ApplicationController
 <% end -%>
       redirect_to new_session_path, alert: "You must confirm your email address before signing in."
 <% end -%>
+<% if invitable? -%>
+    elsif user.invitation_pending?
+<% if trackable? -%>
+      record_authentication_attempt(user, success: false, failure_reason: "invitation_pending")
+<% end -%>
+      redirect_to new_session_path, alert: "You must accept your invitation before signing in."
+<% end -%>
+    # Add your own authentication restrictions specific to your application
+    # elsif user.deleted_at.present?
+<% if trackable? -%>
+      # record_authentication_attempt(user, success: false, failure_reason: "soft_deleted")
+<% end -%>
+      # redirect_to new_session_path, alert: "Your account is not available."
     else
 <% if lockable? -%>
       user.reset_failed_attempts!

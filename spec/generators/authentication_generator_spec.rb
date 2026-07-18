@@ -70,9 +70,9 @@ RSpec.describe RailsAuthentication::Generators::AuthenticationGenerator, type: :
       end
     end
 
-    it "adds no concerns to User" do
+    it "adds no feature concerns to User" do
       assert_file "app/models/user.rb" do |user|
-        expect(user).not_to include("Concern")
+        expect(user.scan(/include \w+Concern/)).to eq([])
       end
     end
   end

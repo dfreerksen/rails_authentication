@@ -94,6 +94,13 @@ module RailsAuthentication
         generate_invitable if invitable?
       end
 
+      # Runs after every feature install so the blank line separates the concern
+      # includes (if any) from the rest of the class body, no matter which features
+      # are enabled.
+      def format_user_model
+        inject_into_file "app/models/user.rb", "\n", after: /(?:  include \w+Concern\n)+/, force: true
+      end
+
       # Confirmable, Rememberable, Trackable, Timeoutable, and Lockable all hook into the
       # sign-in flow, so the base generator's session files are replaced with versions
       # rendered from the enabled feature set. Overwriting is safe: the base copies were

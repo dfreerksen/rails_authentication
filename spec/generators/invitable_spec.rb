@@ -42,11 +42,20 @@ RSpec.describe "authentication generator: invitable", type: :generator do
     end
   end
 
+  it "blocks sign-in for a pending invitee via the sessions controller" do
+    run_generator
+
+    assert_file "app/controllers/sessions_controller.rb", /elsif user\.invitation_pending\?/
+  end
+
   it "is skipped with --skip-invitable" do
     run_generator %w[--skip-invitable]
 
     assert_no_file "app/models/concerns/invitable_concern.rb"
     assert_no_migration "db/migrate/add_invitable_to_users.rb"
     assert_no_file "app/controllers/invitations_controller.rb"
+    assert_file "app/controllers/sessions_controller.rb" do |controller|
+      expect(controller).not_to include("invitation_pending?")
+    end
   end
 end

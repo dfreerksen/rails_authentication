@@ -54,6 +54,18 @@ RSpec.describe "Invitations (invitable)", type: :request do
     expect(inviter.reload.invitations_count).to eq(2)
   end
 
+  it "blocks sign-in for a pending invitee, but not once the invitation is accepted" do
+    invitee = create_user(email: "invitee@example.com", invitation_token: "abc", invitation_created_at: Time.current, invitation_accepted_at: nil)
+
+    sign_in invitee
+    follow_redirect!
+    expect(response.body).to include("You must accept your invitation before signing in.")
+
+    patch "/invitations/abc", params: { password: "password123", password_confirmation: "password123" }
+    sign_in invitee.reload
+    expect(response).to redirect_to("http://www.example.com/")
+  end
+
   it "rejects expired invitation tokens" do
     inviter = create_user(email: "inviter@example.com")
     sign_in inviter
