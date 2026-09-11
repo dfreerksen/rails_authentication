@@ -10,20 +10,21 @@ module RailsAuthentication
       # Registerable, SessionsController#create) is left intact.
       module Ott
         private
-          def generate_ott
-            template "app/models/concerns/ott_concern.rb"
-            include_concern_in_user "OttConcern"
-            migration_template "db/migrate/add_ott_to_users.rb", "db/migrate/add_ott_to_users.rb"
-            template "app/controllers/otts_controller.rb"
-            template "app/views/otts/edit.html.erb"
-            route "resource :ott, only: %i[ create edit update ]"
 
-            if defined?(ActionMailer::Railtie)
-              template "app/mailers/otts_mailer.rb"
-              template "app/views/otts_mailer/ott.html.erb"
-              template "app/views/otts_mailer/ott.text.erb"
-            end
+        def generate_ott
+          template "app/models/concerns/ott_concern.rb"
+          include_concern_in_user "OttConcern"
+          migration_template "db/migrate/add_ott_to_users.rb", "db/migrate/add_ott_to_users.rb"
+          template "app/controllers/otts_controller.rb"
+          template "app/views/otts/edit.html.erb"
+          route "resource :ott, only: %i[ create edit update ]"
+
+          if defined?(ActionMailer::Railtie)
+            template "app/mailers/otts_mailer.rb"
+            template "app/views/otts_mailer/ott.html.erb"
+            template "app/views/otts_mailer/ott.text.erb"
           end
+        end
       end
     end
   end

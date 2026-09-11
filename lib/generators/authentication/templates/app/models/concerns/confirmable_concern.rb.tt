@@ -47,28 +47,29 @@ module ConfirmableConcern
   def generate_confirmation_token!
     update!(confirmation_token: generate_confirmable_token, confirmation_sent_at: Time.current)
   end
-<% if reconfirmable? -%>
-
-  private
-    def postponing_email_address_change?
-      !@confirming && email_address_changed? && confirmed?
-    end
-
-    def postpone_email_address_change
-      self.unconfirmed_email = email_address
-      self.email_address = email_address_in_database
-      self.confirmation_token = generate_confirmable_token
-      self.confirmation_sent_at = Time.current
-    end
-
-    def deliver_reconfirmation_instructions
-      ConfirmationsMailer.confirmation_instructions(self).deliver_later
-    end
-<% end -%>
 
   protected
 
   def generate_confirmable_token
     SecureRandom.urlsafe_base64(32)
   end
+<% if reconfirmable? -%>
+
+  private
+
+  def postponing_email_address_change?
+    !@confirming && email_address_changed? && confirmed?
+  end
+
+  def postpone_email_address_change
+    self.unconfirmed_email = email_address
+    self.email_address = email_address_in_database
+    self.confirmation_token = generate_confirmable_token
+    self.confirmation_sent_at = Time.current
+  end
+
+  def deliver_reconfirmation_instructions
+    ConfirmationsMailer.confirmation_instructions(self).deliver_later
+  end
+<% end -%>
 end
