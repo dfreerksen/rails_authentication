@@ -1,0 +1,19 @@
+<h1>Your passkeys</h1>
+
+<%%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
+<%%= tag.div(flash[:notice], style: "color:green") if flash[:notice] %>
+
+<%% if @webauthn_credentials.empty? %>
+  <p>You haven't added a passkey yet.</p>
+<%% else %>
+  <ul>
+    <%% @webauthn_credentials.each do |credential| %>
+      <li>
+        <%%= credential.nickname %> &mdash; added <%%= credential.created_at.to_date %>
+        <%%= button_to "Remove", webauthn_credential_path(credential), method: :delete, data: { turbo_confirm: "Remove this passkey?" } %>
+      </li>
+    <%% end %>
+  </ul>
+<%% end %>
+
+<br><%%= link_to "Add a passkey", new_webauthn_credential_path %>

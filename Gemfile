@@ -11,3 +11,4 @@ gem "rake"
 gem "rspec", "~> 3.13"
 gem "rspec-rails", "~> 8.0"
 gem "sqlite3"
+gem "webauthn" # request specs exercise the generated Passkey feature against this bundle

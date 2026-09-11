@@ -1,0 +1,11 @@
+WebAuthn.configure do |config|
+  # This value needs to match `window.location.hostname` where the API is called from in
+  # your client-side (front-end) code.
+  # config.rp_id = "example.com"
+
+  # This value needs to match `window.location.origin` where the API is called from in
+  # your client-side (front-end) code.
+  # config.allowed_origins = ["https://example.com"]
+
+  config.rp_name = Rails.application.class.module_parent_name
+end

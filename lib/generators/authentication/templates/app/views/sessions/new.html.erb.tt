@@ -30,6 +30,71 @@
 <% if magic_link? -%>
 <br><%%= link_to "Sign in with magic link", new_magic_link_path %>
 <% end -%>
+<% if passkey? -%>
+<br><%%= button_tag "Sign in with a passkey", type: "button", id: "passkey-sign-in-button" %>
+<%%= tag.span "", id: "passkey-sign-in-error", style: "color:red" %>
+
+<%%= javascript_tag do %>
+  (function () {
+    function bufferEncode(value) {
+      return btoa(String.fromCharCode.apply(null, new Uint8Array(value)))
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+    }
+
+    function bufferDecode(value) {
+      const padded = value.replace(/-/g, "+").replace(/_/g, "/");
+      const raw = window.atob(padded);
+      const buffer = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) buffer[i] = raw.charCodeAt(i);
+      return buffer.buffer;
+    }
+
+    document.getElementById("passkey-sign-in-button").addEventListener("click", async function () {
+      const options = <%%= raw @webauthn_credential_options.to_json %>;
+      options.challenge = bufferDecode(options.challenge);
+      if (options.allowCredentials) {
+        options.allowCredentials = options.allowCredentials.map(function (cred) {
+          return Object.assign({}, cred, { id: bufferDecode(cred.id) });
+        });
+      }
+
+      let credential;
+      try {
+        credential = await navigator.credentials.get({ publicKey: options });
+      } catch (error) {
+        document.getElementById("passkey-sign-in-error").textContent = error.message;
+        return;
+      }
+
+      const response = await fetch("<%%= passkey_session_path %>", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+          id: credential.id,
+          rawId: bufferEncode(credential.rawId),
+          type: credential.type,
+          response: {
+            clientDataJSON: bufferEncode(credential.response.clientDataJSON),
+            authenticatorData: bufferEncode(credential.response.authenticatorData),
+            signature: bufferEncode(credential.response.signature),
+            userHandle: credential.response.userHandle ? bufferEncode(credential.response.userHandle) : null
+          }
+        })
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        window.location.href = result.redirect_to;
+      } else {
+        document.getElementById("passkey-sign-in-error").textContent = result.error || "Could not sign in with passkey.";
+      }
+    });
+  })();
+<%% end %>
+<% end -%>
 <br><%%= link_to "Forgot password?", new_password_path %>
 <% if registerable? -%>
 <br><%%= link_to "Sign up", new_registration_path %>

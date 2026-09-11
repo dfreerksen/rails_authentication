@@ -1,0 +1,68 @@
+class PasskeySessionsController < ApplicationController
+  allow_unauthenticated_access
+  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { render json: { error: "Try again later." }, status: :too_many_requests }
+
+  def create
+    webauthn_credential = WebAuthn::Credential.from_get(params)
+    stored_credential = WebauthnCredential.find_by(external_id: webauthn_credential.id)
+
+    if stored_credential.nil?
+      return render json: { error: "Passkey not recognized." }, status: :unprocessable_content
+    end
+
+    begin
+      webauthn_credential.verify(
+        session[:webauthn_authentication_challenge],
+        public_key: stored_credential.public_key,
+        sign_count: stored_credential.sign_count
+      )
+    rescue WebAuthn::Error
+      return render json: { error: "Passkey verification failed." }, status: :unprocessable_content
+    end
+
+    stored_credential.update!(sign_count: webauthn_credential.sign_count)
+    user = stored_credential.user
+    session.delete(:webauthn_authentication_challenge)
+
+<% if lockable? -%>
+    if user.locked?
+<% if trackable? -%>
+      record_authentication_attempt(user, success: false, failure_reason: "locked")
+<% end -%>
+      return render json: { error: "Your account is locked. Check your email for unlock instructions." }, status: :unprocessable_content
+    end
+<% end -%>
+<% if confirmable? -%>
+    unless user.confirmed?
+<% if trackable? -%>
+      record_authentication_attempt(user, success: false, failure_reason: "unconfirmed")
+<% end -%>
+      return render json: { error: "You must confirm your email address before signing in." }, status: :unprocessable_content
+    end
+<% end -%>
+<% if invitable? -%>
+    if user.invitation_pending?
+<% if trackable? -%>
+      record_authentication_attempt(user, success: false, failure_reason: "invitation_pending")
+<% end -%>
+      return render json: { error: "You must accept your invitation before signing in." }, status: :unprocessable_content
+    end
+<% end -%>
+<% if lockable? -%>
+    user.reset_failed_attempts!
+<% end -%>
+<% if trackable? -%>
+    record_authentication_attempt(user, success: true)
+<% end -%>
+    start_new_session_for user
+    render json: { redirect_to: after_authentication_url }
+  end
+<% if trackable? -%>
+
+  private
+
+  def record_authentication_attempt(user, success:, failure_reason: nil)
+    UserAuth.record(user, request, success: success, failure_reason: failure_reason)
+  end
+<% end -%>
+end

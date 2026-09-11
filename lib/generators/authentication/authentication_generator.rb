@@ -13,6 +13,7 @@ require_relative "features/lockable"
 require_relative "features/invitable"
 require_relative "features/magic_link"
 require_relative "features/ott"
+require_relative "features/passkey"
 
 module RailsAuthentication
   module Generators
@@ -46,6 +47,7 @@ module RailsAuthentication
       include Features::Invitable
       include Features::MagicLink
       include Features::Ott
+      include Features::Passkey
 
       source_root File.expand_path("templates", __dir__)
 
@@ -67,6 +69,11 @@ module RailsAuthentication
       # machinery stays generated and functional.
       class_option :ott, type: :boolean, default: false,
         desc: "Add one-time token (emailed 6-digit code) sign-in (opt-in)"
+
+      # Also opt-in: WebAuthn passkey sign-in alongside password sign-in.
+      # Requires the host app to add the `webauthn` gem itself.
+      class_option :passkey, type: :boolean, default: false,
+        desc: "Add WebAuthn passkey sign-in (opt-in; requires the webauthn gem)"
 
       def install_base_authentication
         say "Running Rails' built-in authentication generator", :green
@@ -117,6 +124,10 @@ module RailsAuthentication
         generate_ott if ott?
       end
 
+      def install_passkey
+        generate_passkey if passkey?
+      end
+
       # Runs after every feature install so the blank line separates the concern
       # includes (if any) from the rest of the class body, no matter which features
       # are enabled.
@@ -149,6 +160,10 @@ module RailsAuthentication
 
         def ott?
           options[:ott]
+        end
+
+        def passkey?
+          options[:passkey]
         end
 
         def include_concern_in_user(concern)

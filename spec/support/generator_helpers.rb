@@ -33,6 +33,13 @@ module GeneratorHelpers
   # generator produces. Specs stub that (shelling-out) base invocation, so seed its
   # relevant output here instead.
   def seed_base_app_files
+    # The `gem` generator action (used by Passkey to add `webauthn`) appends to this.
+    write_destination_file "Gemfile", <<~RUBY
+      source "https://rubygems.org"
+
+      gem "rails"
+    RUBY
+
     write_destination_file "config/routes.rb", <<~RUBY
       Rails.application.routes.draw do
       end

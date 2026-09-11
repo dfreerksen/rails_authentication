@@ -19,6 +19,7 @@ gem extends that same command to also install:
 | **Invitable** | Invite users by email; blocks sign-in until they accept by choosing their own password |
 | **MagicLink** (opt-in) | Passwordless magic link sign-in via email — DB-backed, single-use, expiring tokens |
 | **Ott** (opt-in) | Passwordless sign-in via an emailed 6-digit one-time code — replaces the password sign-in form |
+| **Passkey** (opt-in) | WebAuthn passkey sign-in alongside the password form — usernameless, no email required |
 
 Everything is **generated into your app** as plain, readable code — controllers, views, mailers,
 migrations, and one model concern per feature. There is no runtime dependency on this gem: after
@@ -57,12 +58,13 @@ Available flags: `--skip-confirmable`, `--skip-recoverable`, `--skip-registerabl
 `--skip-lockable`, `--skip-invitable`, and `--reconfirmable` (Confirmable: postpone email address
 changes until the new address is confirmed, via an `unconfirmed_email` column).
 
-MagicLink and Ott are **opt-in** features — they change the sign-in UX, so you have to ask for
-them:
+MagicLink, Ott, and Passkey are **opt-in** features — they change the sign-in UX, so you have to
+ask for them:
 
 ```sh
 bin/rails generate authentication --magic-link
 bin/rails generate authentication --ott
+bin/rails generate authentication --passkey
 ```
 
 MagicLink adds a "Sign in with magic link" link to the sign-in page, leading to an email-only
@@ -79,8 +81,16 @@ and are voided after 5 wrong entries (`OttConcern::OTT_MAX_ATTEMPTS`). The passw
 (SessionsController#create, Recoverable, Registerable) stays generated and functional — only the
 sign-in UI changes.
 
-Both flows honor the other enabled features: locked, unconfirmed, or invitation-pending accounts
-still can't sign in, and Trackable records the attempt.
+Passkey adds a "Sign in with a passkey" button to the sign-in page (no email field — the
+browser's own discoverable-credential picker takes its place) plus an authenticated
+`/webauthn_credentials` section where a signed-in user can register and remove passkeys (linked
+from the account page when Registerable is enabled). Unlike every other feature here, this one
+brings a real runtime dependency: the generator adds `gem "webauthn"` to your Gemfile for you (with
+a reminder to run `bundle install`), since ceremony verification is delegated to it. A user can
+register any number of passkeys, each stored as its own row in `webauthn_credentials`.
+
+All three flows honor the other enabled features: locked, unconfirmed, or invitation-pending
+accounts still can't sign in, and Trackable records the attempt.
 
 Each feature adds a single `include <Feature>Concern` line to `app/models/user.rb`; all of its
 model behavior lives in `app/models/concerns/<feature>_concern.rb`. Tunables are plain constants in
@@ -98,6 +108,8 @@ resources :unlocks,       only: %i[ new create show ], param: :token
 resources :invitations,   only: %i[ new create edit update ], param: :token
 resources :magic_links,   only: %i[ new create show ], param: :token   # with --magic-link
 resource  :ott,           only: %i[ create edit update ]               # with --ott
+resources :webauthn_credentials, only: %i[ index new create destroy ]  # with --passkey
+resource  :passkey_session, only: %i[ create ]                         # with --passkey
 resource  :session                      # from the base generator
 resources :passwords, param: :token     # from the base generator
 ```
@@ -114,10 +126,6 @@ resources :passwords, param: :token     # from the base generator
   sessions view with versions tailored to the features you selected. Run the generator once, up
   front — re-running it after you've customized those files will prompt to overwrite them.
 
-## Future Plans
-
-- Passkey
-
 ## Development
 
 ```sh
@@ -130,6 +138,8 @@ bundle exec rspec spec/generators/lockable_spec.rb:12   # a single example
 
 `spec/dummy` is generated (and gitignored), never hand-maintained, so the request specs always
 exercise exactly what the templates produce.
+
+To run the app using the dummy app generated in `spec/dummy`, run `bin/dev`
 
 ## License
 

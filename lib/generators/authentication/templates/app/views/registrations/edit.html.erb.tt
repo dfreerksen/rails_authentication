@@ -19,4 +19,8 @@
 <%% end %>
 <br>
 
+<% if passkey? -%>
+<%%= link_to "Manage your passkeys", webauthn_credentials_path %>
+<br><br>
+<% end -%>
 <%%= button_to "Delete my account", registration_path, method: :delete, data: { turbo_confirm: "Are you sure?" } %>

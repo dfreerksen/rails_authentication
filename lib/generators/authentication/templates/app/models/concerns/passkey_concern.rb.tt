@@ -1,0 +1,19 @@
+module PasskeyConcern
+  extend ActiveSupport::Concern
+
+  included do
+    has_many :webauthn_credentials, dependent: :destroy
+
+    before_validation :ensure_webauthn_id, on: :create
+  end
+
+  def passkeys?
+    webauthn_credentials.exists?
+  end
+
+  private
+
+  def ensure_webauthn_id
+    self.webauthn_id ||= WebAuthn.generate_user_id
+  end
+end
