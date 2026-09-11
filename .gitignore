@@ -1,6 +1,5 @@
 /.bundle/
 /pkg/
 /tmp/
-Gemfile.lock
 /spec/dummy/
 .DS_Store
