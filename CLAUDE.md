@@ -23,6 +23,23 @@ the host app; the gem has no runtime footprint.
 - `bundle exec rspec spec/generators/lockable_spec.rb:12` — single example by line number
 - `bundle exec rake spec` — generator specs only (default task; requests need the dummy first)
 
+### Testing against multiple Rails versions
+
+CI (`.github/workflows/ci.yml`) runs the full suite once per supported Rails line, driven by
+`appraisal2` (see the `Appraisals` file, which pins `rails` per line; everything else comes
+from the root `Gemfile`). Locally:
+
+- `bundle exec appraisal generate-install` — (re)generate `gemfiles/*.gemfile` from `Appraisals`
+  and install each; run after editing `Appraisals` or the root `Gemfile`
+- `bundle exec appraisal rails-8.0 rake spec` — run the full suite against a specific line
+- `bundle exec appraisal rake spec` — run it against every line
+
+`gemfiles/*.gemfile` are committed; `gemfiles/*.gemfile.lock` are gitignored (same reasoning as
+the root `Gemfile.lock`: this is a gem, not an app, so it shouldn't pin its consumers'/CI's
+dependency resolution beyond the version lines declared in `Appraisals`) — each CI run re-resolves
+within the pinned line, which is what caught the Rails-8.1-era `to_json` arity regression CI hit
+on 2026-09-11 (see git log around that date for the incident and fix).
+
 ## Architecture
 
 ### The namespace trick (load-bearing)

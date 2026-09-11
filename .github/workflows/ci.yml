@@ -9,6 +9,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        appraisal: ["rails-8.0", "rails-8.1"]
+
     steps:
       - uses: actions/checkout@v4
 
@@ -18,11 +23,14 @@ jobs:
           ruby-version: "3.2"
           bundler-cache: true
 
+      - name: Install appraisal gemfiles
+        run: bundle exec appraisal generate-install
+
       - name: Run generator specs
-        run: bundle exec rake spec:generators
+        run: bundle exec appraisal ${{ matrix.appraisal }} rake spec:generators
 
       - name: Prepare dummy app
-        run: bin/prepare_dummy
+        run: bundle exec appraisal ${{ matrix.appraisal }} rake dummy:prepare
 
       - name: Run request specs
-        run: bundle exec rake spec:requests
+        run: bundle exec appraisal ${{ matrix.appraisal }} rake spec:requests

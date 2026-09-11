@@ -17,8 +17,11 @@ bundle exec rails new spec/dummy \
 cd spec/dummy
 
 # The dummy app boots against the gem's own Gemfile (which has rails, bcrypt, sqlite3),
-# so its generated Gemfile is never bundled.
-export BUNDLE_GEMFILE="$ROOT/Gemfile"
+# so its generated Gemfile is never bundled. Respect an inherited BUNDLE_GEMFILE (e.g. set
+# by `bundle exec appraisal rails-8.0 rake dummy:prepare`) instead of always the root one,
+# so the dummy app boots against whichever Rails line the current appraisal is testing.
+: "${BUNDLE_GEMFILE:=$ROOT/Gemfile}"
+export BUNDLE_GEMFILE
 
 # A root route so after_authentication_url has somewhere to land.
 cat > app/controllers/home_controller.rb <<'RUBY'

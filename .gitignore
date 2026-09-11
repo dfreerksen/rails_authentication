@@ -2,4 +2,6 @@
 /pkg/
 /tmp/
 /spec/dummy/
+Gemfile.lock
+gemfiles/*.gemfile.lock
 .DS_Store
