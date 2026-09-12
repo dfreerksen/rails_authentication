@@ -19,8 +19,16 @@ module GeneratorHelpers
 
   attr_accessor :assertions
 
+  # Per-process, not a fixed shared path: every appraisal (and any plain `rspec` run)
+  # would otherwise point at the same tmp/destination, so two runs that ever overlap in
+  # time — two appraisals running close together, a leftover process from an interrupted
+  # run — can collide (Thor sees a file/migration the OTHER process wrote and prompts to
+  # overwrite it, or blocks waiting on stdin in a non-interactive run). Namespacing by PID
+  # means no two processes ever touch the same directory, regardless of timing.
   def destination_root
-    @destination_root ||= File.expand_path("../../tmp/destination", __dir__)
+    @destination_root ||= File.expand_path("../../tmp/destination-#{Process.pid}", __dir__).tap do |root|
+      at_exit { FileUtils.rm_rf(root) }
+    end
   end
 
   def prepare_destination

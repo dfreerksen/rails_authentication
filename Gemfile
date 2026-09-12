@@ -6,6 +6,7 @@ gemspec
 
 gem "appraisal2" # test the generated code against multiple Rails lines — see Appraisals
 gem "bcrypt" # the dummy app's has_secure_password runs against this bundle
+gem "json", "~> 2.7"
 gem "puma" # bin/dev serves the dummy app against this bundle
 gem "rails", ">= 8.0"
 gem "rake"

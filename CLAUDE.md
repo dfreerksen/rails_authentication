@@ -7,10 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `rails_authentication` extends Rails 8's built-in `bin/rails generate authentication` command to
 also install Devise-style features (Confirmable, Recoverable, Registerable, Rememberable,
 Trackable, Timeoutable, Validatable, Lockable, Invitable), each opt-out-able via
-`--skip-<feature>`, plus two opt-in features: MagicLink (passwordless email sign-in via
-`--magic-link`) and Ott (emailed 6-digit one-time code sign-in via `--ott`; replaces the sign-in
-form with an email-only form but keeps the password machinery intact). All code is generated into
-the host app; the gem has no runtime footprint.
+`--skip-<feature>`, plus three opt-in features: MagicLink (passwordless email sign-in via
+`--magic-link`), Ott (emailed 6-digit one-time code sign-in via `--ott`; replaces the sign-in form
+with an email-only form but keeps the password machinery intact), and Passkey (usernameless
+WebAuthn passkey sign-in alongside the password form via `--passkey`; requires the host app to add
+the `webauthn` gem itself). All code is generated into the host app; the gem has no runtime
+footprint.
 
 ## Commands
 
@@ -23,22 +25,44 @@ the host app; the gem has no runtime footprint.
 - `bundle exec rspec spec/generators/lockable_spec.rb:12` — single example by line number
 - `bundle exec rake spec` — generator specs only (default task; requests need the dummy first)
 
-### Testing against multiple Rails versions
+### Testing against multiple Rails and json versions
 
-CI (`.github/workflows/ci.yml`) runs the full suite once per supported Rails line, driven by
-`appraisal2` (see the `Appraisals` file, which pins `rails` per line; everything else comes
-from the root `Gemfile`). Locally:
+CI (`.github/workflows/ci.yml`) runs the full suite once per cell of a Rails × json matrix,
+driven by `appraisal2` (see the `Appraisals` file; everything not pinned there comes from the
+root `Gemfile`). The matrix is currently `rails-8.0-json-2`, `rails-8.1-json-2`,
+`rails-8.0-json-3`, `rails-8.1-json-3`. The json axis exists because of a real, current
+incompatibility, not for its own sake — see below. Locally:
 
 - `bundle exec appraisal generate-install` — (re)generate `gemfiles/*.gemfile` from `Appraisals`
   and install each; run after editing `Appraisals` or the root `Gemfile`
-- `bundle exec appraisal rails-8.0 rake spec` — run the full suite against a specific line
-- `bundle exec appraisal rake spec` — run it against every line
+- `bundle exec appraisal rails-8.0-json-2 rake spec:generators` /
+  `... rake dummy:prepare` / `... rake spec:requests` — run one appraisal's slice; see
+  `bin/appraisal` for the full sequence across every appraisal
 
 `gemfiles/*.gemfile` are committed; `gemfiles/*.gemfile.lock` are gitignored (same reasoning as
 the root `Gemfile.lock`: this is a gem, not an app, so it shouldn't pin its consumers'/CI's
 dependency resolution beyond the version lines declared in `Appraisals`) — each CI run re-resolves
 within the pinned line, which is what caught the Rails-8.1-era `to_json` arity regression CI hit
 on 2026-09-11 (see git log around that date for the incident and fix).
+
+Generator specs (`spec/generators/`) write to a scratch directory that's namespaced by process id
+(`tmp/destination-#{Process.pid}` in `spec/support/generator_helpers.rb`), not a fixed
+`tmp/destination` — appraisal runs happening close together (or a leftover process from an
+interrupted run) previously collided on that fixed path, with Thor prompting to overwrite a file
+or migration a *different* process had written. Don't change it back to a fixed path.
+
+### The json 2 vs json 3 incompatibility
+
+`json` 3.0 (still an RC as of 2026-09, see https://bugs.ruby-lang.org/issues/22241) removed the
+`quirks_mode:` keyword and made `JSON.generate`/`JSON.parse`'s second argument keyword-only.
+Rails' `ActiveSupport::JSON` still calls both with `quirks_mode: true` positionally, so every
+cookie/session read or write throws `ArgumentError` under json 3 — not a bug in this gem or in
+host apps, an upstream Rails/json incompatibility that isn't resolved yet. `bin/prepare_dummy`
+writes `spec/dummy/config/initializers/json_quirks_mode_compat.rb`, which prepends a shim onto
+`JSON.generate`/`.parse` that strips `quirks_mode` and re-passes remaining options via `**opts`
+(so it works whether the resolved `JSON.parse` still takes a positional options hash, json 2.x,
+or keywords only, json 3.x). It no-ops under json 2.x (`Gem::Version.new(::JSON::VERSION) >=
+Gem::Version.new("3.0")` gates it) and is safe to delete once Rails or json fixes this upstream.
 
 ## Architecture
 
@@ -104,8 +128,9 @@ whole-file comparison — use Regexps.
 
 **Request specs** (`spec/requests/`) exercise the generated code over HTTP against `spec/dummy`, a
 real Rails app **produced by the real generator** via `bin/prepare_dummy` (gitignored, never
-hand-edited, so it can't drift from the templates; the script passes `--magic-link --ott` so the
-opt-in features are exercised too). The dummy boots against this gem's own Gemfile
+hand-edited, so it can't drift from the templates; the script passes `--magic-link --ott
+--passkey` so the opt-in features are exercised too). The dummy boots against this gem's own
+Gemfile
 (`BUNDLE_GEMFILE` is exported by the script; that's why `bcrypt` is in the gem's Gemfile).
 `spec/rails_helper.rb` boots it and forces the inline ActiveJob adapter so mailer specs can assert
 on `ActionMailer::Base.deliveries`. If a template changes, rerun `rake dummy:prepare` before

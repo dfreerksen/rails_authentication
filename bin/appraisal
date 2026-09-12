@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+bundle exec appraisal generate-install
+
+bundle exec rake spec:generators
+bundle exec rake dummy:prepare
+
+for gemfile in $(bundle exec appraisal list); do
+  bundle exec appraisal "$gemfile" rake spec:requests
+done

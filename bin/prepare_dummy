@@ -33,6 +33,33 @@ end
 RUBY
 ruby -i -pe 'sub(/^Rails\.application\.routes\.draw do$/) { "#{$&}\n  root \"home#index\"" }' config/routes.rb
 
+# Workaround for json >= 3.0 dropping the `quirks_mode:` keyword that Rails'
+# ActiveSupport::JSON still passes to JSON.generate/JSON.parse, which breaks every
+# cookie/session read or write (https://bugs.ruby-lang.org/issues/22241). Only
+# activates when json 3+ is actually the resolved version (e.g. the rails-8.0-json-3
+# appraisal); a no-op otherwise. Safe to delete once Rails or json fixes this upstream.
+cat > config/initializers/json_quirks_mode_compat.rb <<'RUBY'
+if Gem::Version.new(::JSON::VERSION) >= Gem::Version.new("3.0")
+  module JSONQuirksModeCompat
+    # json 3.x also made options keyword-only (no more `parse(source, opts_hash)`),
+    # so pass what's left back in as **opts rather than positionally — Ruby converts
+    # that back to a positional hash for json 2.x's `opts = {}`-style signature, and
+    # it lands as real keywords for json 3.x's, so this works on both.
+    def generate(obj, opts = nil)
+      opts = opts.dup.tap { |o| o.delete(:quirks_mode) } if opts
+      opts ? super(obj, **opts) : super(obj)
+    end
+
+    def parse(source, opts = nil)
+      opts = opts.dup.tap { |o| o.delete(:quirks_mode) } if opts
+      opts ? super(source, **opts) : super(source)
+    end
+  end
+
+  JSON.singleton_class.prepend(JSONQuirksModeCompat)
+end
+RUBY
+
 # --magic-link, --ott, and --passkey are opt-in; enabled here so the request specs can exercise them.
 bundle exec rails generate authentication --magic-link --ott --passkey --force
 RAILS_ENV=test bundle exec rails db:migrate

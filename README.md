@@ -141,6 +141,51 @@ exercise exactly what the templates produce.
 
 To run the app using the dummy app generated in `spec/dummy`, run `bin/dev`
 
+## Appraisal
+
+Install Appraisal dependencies or when a new Appraisal is added, generate the .gemfile
+
+```sh
+bundle exec appraisal generate-install
+```
+
+Run tests with Appraisal
+
+```sh
+bin/appraisal
+```
+
+Run a specific Appraisal test
+
+```sh
+# rails-8.0-json-2
+bundle exec appraisal rails-8.0-json-2 rake spec:generators
+bundle exec appraisal rails-8.0-json-2 rake dummy:prepare
+bundle exec appraisal rails-8.0-json-2 rake spec:requests
+# rails-8.0-json-3
+bundle exec appraisal rails-8.0-json-3 rake spec:generators
+bundle exec appraisal rails-8.0-json-3 rake dummy:prepare
+bundle exec appraisal rails-8.0-json-3 rake spec:requests
+# rails-8.1-json-2
+bundle exec appraisal rails-8.1-json-2 rake spec:generators
+bundle exec appraisal rails-8.1-json-2 rake dummy:prepare
+bundle exec appraisal rails-8.1-json-2 rake spec:requests
+# rails-8.1-json-3
+bundle exec appraisal rails-8.1-json-3 rake spec:generators
+bundle exec appraisal rails-8.1-json-3 rake dummy:prepare
+bundle exec appraisal rails-8.1-json-3 rake spec:requests
+```
+
+## json 3.0 gem compatibility
+
+`json` 3.0 gem removed the `quirks_mode:` keyword and made `JSON.generate`/`JSON.parse`'s second argument keyword-only. Rails' `ActiveSupport::JSON` still calls both with `quirks_mode: true` positionally, so every
+cookie/session read or write throws `ArgumentError` under json 3. `bin/prepare_dummy`
+writes `spec/dummy/config/initializers/json_quirks_mode_compat.rb`, which prepends a shim onto
+`JSON.generate`/`.parse` that strips `quirks_mode` and re-passes remaining options via `**opts`
+(so it works whether the resolved `JSON.parse` still takes a positional options hash, json 2.x,
+or keywords only, json 3.x). It no-ops under json 2.x (`Gem::Version.new(::JSON::VERSION) >=
+Gem::Version.new("3.0")` gates it) and is safe to delete once Rails or json fixes this upstream.
+
 ## License
 
 MIT

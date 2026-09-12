@@ -9,10 +9,22 @@
 # resulting gemfiles/*.gemfile (the *.gemfile.lock files are gitignored — CI re-resolves
 # them fresh so a new Rails patch release inside a supported line still gets exercised).
 
-appraise "rails-8.0" do
+appraise "rails-8.0-json-2" do
   gem "rails", "~> 8.0.0"
+  gem "json", "~> 2.7"
 end
 
-appraise "rails-8.1" do
+appraise "rails-8.1-json-2" do
   gem "rails", "~> 8.1.0"
+  gem "json", "~> 2.7"
+end
+
+appraise "rails-8.0-json-3" do
+  gem "rails", "~> 8.0.0"
+  gem "json", "~> 3.0"
+end
+
+appraise "rails-8.1-json-3" do
+  gem "rails", "~> 8.1.0"
+  gem "json", "~> 3.0"
 end

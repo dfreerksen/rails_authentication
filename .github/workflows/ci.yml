@@ -6,13 +6,32 @@ on:
   pull_request:
 
 jobs:
+  appraisals:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      - id: list
+        name: List appraisals defined in Appraisals
+        run: echo "matrix=$(bundle exec appraisal list | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
+
   test:
+    needs: appraisals
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        appraisal: ["rails-8.0", "rails-8.1"]
+        appraisal: ${{ fromJson(needs.appraisals.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v4
