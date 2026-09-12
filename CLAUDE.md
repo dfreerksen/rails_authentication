@@ -51,6 +51,19 @@ Generator specs (`spec/generators/`) write to a scratch directory that's namespa
 interrupted run) previously collided on that fixed path, with Thor prompting to overwrite a file
 or migration a *different* process had written. Don't change it back to a fixed path.
 
+CI installs only the one gemfile each matrix job actually needs (`bundle exec appraisal
+${{ matrix.appraisal }} bundle install`), not `appraisal generate-install`. That command installs
+*every* gemfile in `Appraisals` into the job's single shared `vendor/bundle`, and when two
+appraisals depend on the identical version of a gem with a native extension (both json-3
+appraisals resolve the same `json` version), installing it a second time into the same
+`vendor/bundle` collides mid-build — seen in CI as either `Directory not empty @
+rb_file_s_rename` or a missing `extconf.rb` on the second attempt, depending on which build step
+the two installs raced on. This isn't an upstream json bug; it only shows up when a single job
+installs more than one gemfile. `bin/appraisal` (the local one-shot runner across every appraisal)
+still uses `generate-install` and can hit the same collision locally if two appraisals share an
+exact gem version — if that happens, install appraisals one at a time instead
+(`bundle exec appraisal <name> bundle install`).
+
 ### The json 2 vs json 3 incompatibility
 
 `json` 3.0 (still an RC as of 2026-09, see https://bugs.ruby-lang.org/issues/22241) removed the

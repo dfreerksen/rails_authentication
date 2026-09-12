@@ -42,8 +42,15 @@ jobs:
           ruby-version: "3.2"
           bundler-cache: true
 
-      - name: Install appraisal gemfiles
-        run: bundle exec appraisal generate-install
+      - name: Install this appraisal's gemfile
+        # Scoped to just this matrix cell's gemfile. `appraisal generate-install`
+        # would instead install every gemfile in Appraisals into this one job's
+        # shared vendor/bundle, and when two appraisals depend on the identical
+        # version of a gem with a native extension (e.g. both json-3 appraisals on
+        # json 3.0.x), installing it twice into the same vendor/bundle collides
+        # mid-build ("Directory not empty @ rb_file_s_rename", or a missing
+        # extconf.rb on the second attempt) and fails the whole job.
+        run: bundle exec appraisal ${{ matrix.appraisal }} bundle install --retry 3
 
       - name: Run generator specs
         run: bundle exec appraisal ${{ matrix.appraisal }} rake spec:generators
