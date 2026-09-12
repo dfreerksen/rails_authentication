@@ -21,10 +21,16 @@ end
 
 appraise "rails-8.0-json-3" do
   gem "rails", "~> 8.0.0"
-  gem "json", "~> 3.0"
+  # Pinned to the exact 3.0.0 release: json 3.0.2 (released 2026-09-09) ships a broken
+  # gem package for MRI — ext/json/ext/generator/extconf.rb is present in the git tag but
+  # missing from the .gem itself, so `bundle install` fails with "No such file or
+  # directory -- extconf.rb (LoadError)" trying to build the native extension. Once json
+  # publishes a working 3.0.x release, relax this back to "~> 3.0".
+  gem "json", "3.0.0"
 end
 
 appraise "rails-8.1-json-3" do
   gem "rails", "~> 8.1.0"
-  gem "json", "~> 3.0"
+  # See the rails-8.0-json-3 appraisal above re: pinning away from broken json 3.0.2.
+  gem "json", "3.0.0"
 end
