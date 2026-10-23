@@ -6,7 +6,7 @@ class InvitationsController < ApplicationController
   end
 
   def create
-    user = User.invite!(params[:email_address], invited_by: Current.user)
+    user = User.invite!(invitation_params, invited_by: Current.user)
 
     if user.persisted?
       redirect_to new_invitation_path, notice: "Invitation sent to #{user.email_address}."
@@ -28,6 +28,11 @@ class InvitationsController < ApplicationController
   end
 
   private
+
+  # Add any other attributes your User requires (e.g. :name) here and to the invitation form.
+  def invitation_params
+    params.permit(:email_address)
+  end
 
   def set_user_by_token
     @user = User.find_by_valid_invitation_token(params[:token])

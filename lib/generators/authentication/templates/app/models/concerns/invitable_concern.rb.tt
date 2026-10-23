@@ -8,8 +8,9 @@ module InvitableConcern
   end
 
   class_methods do
-    def invite!(email_address, invited_by: nil)
-      user = find_by(email_address: email_address)
+    def invite!(attributes, invited_by: nil)
+      attributes = attributes.to_h.symbolize_keys
+      user = find_by(email_address: attributes[:email_address])
 
       if user
         # Re-inviting an existing pending invitee refreshes their token; anyone else
@@ -23,8 +24,8 @@ module InvitableConcern
         return user
       end
 
-      user = new(
-        email_address: email_address,
+      user = new(attributes)
+      user.assign_attributes(
         password: generate_temporary_password,
         invited_by: invited_by,
         invitation_token: generate_invitable_token,

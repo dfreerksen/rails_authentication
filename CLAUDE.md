@@ -125,6 +125,11 @@ form for an email-only form posting to `ott_path` behind `<% if ott? %>`, with a
 SessionsController#create, Recoverable — stays generated and functional). In view/
 mailer templates, `<%%` escapes runtime ERB; plain `<%` is evaluated at generation time.
 
+Invitable's `User.invite!(attributes, invited_by: nil)` takes an attributes hash (not a bare email
+address) so host apps can require extra fields; `InvitationsController#create` passes
+`invitation_params` (`params.permit(:email_address)`). The README's "Inviting users" section
+documents the contract — keep it in sync with the concern.
+
 Every other feature only adds files plus one `include <Feature>Concern` line injected into
 `app/models/user.rb`. Migrations use `migration_template` (via
 `ActiveRecord::Generators::Migration`). Mailer generation

@@ -80,4 +80,82 @@ RSpec.describe "Invitations (invitable)", type: :request do
       expect(User.find_by!(email_address: "invitee@example.com").invitation_accepted_at).to be_nil
     end
   end
+
+  it "shows validation errors and sends nothing when the invitee's attributes are invalid" do
+    inviter = create_user(email: "inviter@example.com")
+    sign_in inviter
+    ActionMailer::Base.deliveries.clear
+
+    expect {
+      post "/invitations", params: { email_address: "not-an-email" }
+    }.not_to change(User, :count)
+
+    expect(response).to redirect_to("/invitations/new")
+    follow_redirect!
+    expect(response.body).to include("Email address is invalid")
+    expect(ActionMailer::Base.deliveries).to be_empty
+    expect(inviter.reload.invitations_count).to eq(0)
+  end
+
+  describe "User.invite!" do
+    it "builds the invitee from an attributes hash, not just an email address" do
+      confirmed_at = 1.day.ago.change(usec: 0)
+
+      invitee = User.invite!({ email_address: "invitee@example.com", confirmed_at: confirmed_at })
+
+      expect(invitee).to be_persisted
+      expect(invitee.email_address).to eq("invitee@example.com")
+      expect(invitee.confirmed_at).to eq(confirmed_at)
+      expect(invitee.invitation_token).to be_present
+      expect(invitee.invitation_sent_at).to be_present
+      expect(last_email.to).to eq(["invitee@example.com"])
+    end
+
+    it "accepts string keys and permitted ActionController::Parameters" do
+      from_hash = User.invite!({ "email_address" => "string-keys@example.com" })
+      from_params = User.invite!(ActionController::Parameters.new(email_address: "params@example.com").permit(:email_address))
+
+      expect(from_hash).to be_persisted
+      expect(from_params).to be_persisted
+      expect(from_params.email_address).to eq("params@example.com")
+    end
+
+    it "always sets a generated temporary password, ignoring any password passed in" do
+      invitee = User.invite!({ email_address: "invitee@example.com", password: "Chosen-by-inviter1" })
+
+      expect(invitee).to be_persisted
+      expect(invitee.authenticate("Chosen-by-inviter1")).to be(false)
+    end
+
+    it "records the inviter" do
+      inviter = create_user(email: "inviter@example.com")
+
+      invitee = User.invite!({ email_address: "invitee@example.com" }, invited_by: inviter)
+
+      expect(invitee.invited_by).to eq(inviter)
+      expect(inviter.reload.invitations_count).to eq(1)
+    end
+
+    it "returns an unsaved user with errors when the attributes are invalid" do
+      ActionMailer::Base.deliveries.clear
+
+      invitee = User.invite!({ email_address: "not-an-email" })
+
+      expect(invitee).not_to be_persisted
+      expect(invitee.errors[:email_address]).to be_present
+      expect(ActionMailer::Base.deliveries).to be_empty
+    end
+
+    it "returns an existing, non-pending user untouched, ignoring the other attributes" do
+      existing = create_user(email: "member@example.com")
+      ActionMailer::Base.deliveries.clear
+
+      result = User.invite!({ email_address: "member@example.com", confirmed_at: nil })
+
+      expect(result).to eq(existing)
+      expect(result.reload).to be_confirmed
+      expect(result.invitation_token).to be_nil
+      expect(ActionMailer::Base.deliveries).to be_empty
+    end
+  end
 end

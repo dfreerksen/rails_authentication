@@ -5,7 +5,9 @@ RSpec.describe "authentication generator: invitable", type: :generator do
     run_generator
 
     assert_file "app/models/concerns/invitable_concern.rb",
-      /def invite!\(email_address, invited_by: nil\)/,
+      /def invite!\(attributes, invited_by: nil\)/,
+      /attributes = attributes\.to_h\.symbolize_keys/,
+      /user = new\(attributes\)/,
       /def accept_invitation!\(password:, password_confirmation:\)/,
       /belongs_to :invited_by, polymorphic: true, optional: true/,
       /invited_by\.increment!\(:invitations_count\) if invited_by\.respond_to\?\(:invitations_count\)/
@@ -20,7 +22,8 @@ RSpec.describe "authentication generator: invitable", type: :generator do
       /add_index :users, :invitation_token, unique: true/
     assert_file "app/controllers/invitations_controller.rb",
       /allow_unauthenticated_access only: %i\[ edit update \]/,
-      /User\.invite!\(params\[:email_address\], invited_by: Current\.user\)/
+      /User\.invite!\(invitation_params, invited_by: Current\.user\)/,
+      /def invitation_params\n    params\.permit\(:email_address\)\n  end/
     assert_file "app/mailers/invitations_mailer.rb", /def invitation_instructions\(user\)/
     assert_file "app/views/invitations/new.html.erb", /form_with url: invitations_path/
     assert_file "app/views/invitations/edit.html.erb", /invitation_path\(params\[:token\]\)/

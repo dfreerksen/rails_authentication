@@ -99,9 +99,53 @@ the generated concerns — e.g. `TimeoutableConcern::TIMEOUT_IN`, `LockableConce
 `ValidatableConcern::PASSWORD_LENGTH`, `ValidatableConcern::PASSWORD_MINIMUM_COMPLEXITY`,
 `OttConcern::OTT_CODE_LENGTH` — edit them there. Concerns keep the model clean.
 
+### Inviting users
+
+Invitable generates a `User.invite!` class method. It takes a **hash of attributes** for the new
+user (not just an email address) plus an optional `invited_by:`:
+
+```ruby
+User.invite!({ email_address: "new@example.com" }, invited_by: Current.user)
+
+# Any other attributes your User requires go in the same hash
+User.invite!({ email_address: "new@example.com", name: "Ada Lovelace" }, invited_by: Current.user)
+```
+
+`invite!` accepts symbol or string keys, or permitted `ActionController::Parameters`. It
+returns the user either way, so check `persisted?` and `errors` to see whether it worked.
+
+- **New email address**: the user is built from the attributes and gets a random temporary
+  password, a fresh invitation token, and `invited_by`, then is saved. On success the invitation
+  email is sent and the inviter's `invitations_count` goes up. On a validation failure it returns
+  the unsaved user with `errors` and sends nothing.
+- **Existing pending invitee**: the token is refreshed and the invitation re-sent. The other
+  attributes are ignored.
+- **Existing user who isn't a pending invitee**: the user is returned untouched, the other
+  attributes are ignored, and no email is sent.
+
+Any `password` in the hash is overwritten with the temporary one, because invitees choose their
+own password when they accept. Everything else is mass-assigned, so pass only attributes you've
+permitted. Never pass raw `params`.
+
+**Upgrading from the email-only signature.** Earlier versions took the email address as a string,
+`User.invite!(email_address, invited_by: ...)`. That form no longer works, so wrap the address in
+a hash: `User.invite!({ email_address: email_address }, invited_by: ...)`.
+
+**Requiring more than an email address.** The generated `InvitationsController` passes
+`invitation_params` (`params.permit(:email_address)`) to `invite!`. To collect more fields, add
+them in three places: the `permit` list, the inputs in `app/views/invitations/new.html.erb`, and
+the validations on your model:
+
+```ruby
+# app/controllers/invitations_controller.rb
+def invitation_params
+  params.permit(:email_address, :name)
+end
+```
+
 ### Generated routes
 
-```
+```ruby
 resource  :registration, only: %i[ new create edit update destroy ]
 resources :confirmations, only: %i[ new create show ], param: :token
 resources :unlocks,       only: %i[ new create show ], param: :token
