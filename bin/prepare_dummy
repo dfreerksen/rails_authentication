@@ -33,6 +33,12 @@ end
 RUBY
 ruby -i -pe 'sub(/^Rails\.application\.routes\.draw do$/) { "#{$&}\n  root \"home#index\"" }' config/routes.rb
 
+# rspec-rails is in the gem's bundle, so without this its generator hooks drop
+# spec/models/user_spec.rb and spec/fixtures/users.yml into the dummy app (which
+# `rspec spec` in bin/test would then pick up). --skip-test only covers test/.
+ruby -i -pe 'sub(/^    config\.generators\.system_tests = nil$/) { "#{$&}\n    config.generators.test_framework nil" }' config/application.rb
+grep -q "config.generators.test_framework nil" config/application.rb || { echo "prepare_dummy: failed to disable test_framework in config/application.rb" >&2; exit 1; }
+
 # Workaround for json >= 3.0 dropping the `quirks_mode:` keyword that Rails'
 # ActiveSupport::JSON still passes to JSON.generate/JSON.parse, which breaks every
 # cookie/session read or write (https://bugs.ruby-lang.org/issues/22241). Only
