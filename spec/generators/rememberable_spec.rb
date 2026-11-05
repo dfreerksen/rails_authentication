@@ -20,6 +20,14 @@ RSpec.describe "authentication generator: rememberable", type: :generator do
       /user\.forget_me!/
   end
 
+  it "forgets the user when terminating all of their sessions" do
+    run_generator
+
+    assert_file "app/controllers/concerns/authentication.rb",
+      /def terminate_all_sessions_for\(user\)\n    user\.forget_me!\n    user\.sessions\.destroy_all/,
+      /if Current\.user == user\n      Current\.session = nil\n      cookies\.delete\(:session_id\)/
+  end
+
   it "is skipped with --skip-rememberable, restoring the always-permanent cookie" do
     run_generator %w[--skip-rememberable]
 
@@ -30,5 +38,12 @@ RSpec.describe "authentication generator: rememberable", type: :generator do
     assert_file "app/views/sessions/new.html.erb" do |view|
       expect(view).not_to include("remember_me")
     end
+  end
+
+  it "still terminates all sessions without forgetting when skipped" do
+    run_generator %w[--skip-rememberable]
+
+    assert_file "app/controllers/concerns/authentication.rb",
+      /def terminate_all_sessions_for\(user\)\n    user\.sessions\.destroy_all/
   end
 end

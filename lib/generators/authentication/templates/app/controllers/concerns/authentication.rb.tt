@@ -93,4 +93,16 @@ module Authentication
     Current.session.destroy
     cookies.delete(:session_id)
   end
+
+  def terminate_all_sessions_for(user)
+<% if rememberable? -%>
+    user.forget_me!
+<% end -%>
+    user.sessions.destroy_all
+
+    if Current.user == user
+      Current.session = nil
+      cookies.delete(:session_id)
+    end
+  end
 end

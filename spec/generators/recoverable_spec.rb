@@ -26,6 +26,14 @@ RSpec.describe "authentication generator: recoverable", type: :generator do
     assert_file "app/views/passwords_mailer/reset.text.erb", /edit_password_url\(@user\.reset_password_token\)/
   end
 
+  it "terminates all of the user's sessions on password reset" do
+    run_generator
+
+    assert_file "app/controllers/passwords_controller.rb", /terminate_all_sessions_for\(@user\)/ do |controller|
+      expect(controller).not_to include("sessions.destroy_all")
+    end
+  end
+
   it "unlocks the account on password reset when lockable is enabled" do
     run_generator
 

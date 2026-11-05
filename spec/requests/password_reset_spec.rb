@@ -37,6 +37,24 @@ RSpec.describe "Password reset (recoverable)", type: :request do
     expect(response).to redirect_to("/session/new")
   end
 
+  it "invalidates sessions on every device and forgets the user when the password is reset" do
+    user = create_user
+    other_device = open_session
+    other_device.post "/session", params: { email_address: user.email_address, password: RequestHelpers::PASSWORD }
+    sign_in user, remember: true
+    expect(user.sessions.count).to eq(2)
+    expect(user.reload).to be_remembered
+
+    user.generate_reset_password_token!
+    patch "/passwords/#{user.reload.reset_password_token}",
+      params: { password: "newpassword456", password_confirmation: "newpassword456" }
+
+    expect(user.sessions.count).to eq(0)
+    expect(user.reload).not_to be_remembered
+    other_device.get "/"
+    expect(other_device.response).to redirect_to("/session/new")
+  end
+
   it "rejects expired reset tokens" do
     user = create_user
     user.generate_reset_password_token!
