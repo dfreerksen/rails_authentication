@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class UserAuth < ApplicationRecord
   # user is optional so failed attempts against unknown email addresses still get recorded
   belongs_to :user, optional: true

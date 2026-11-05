@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class MagicLinksMailer < ApplicationMailer
   def magic_link(user)
     @user = user

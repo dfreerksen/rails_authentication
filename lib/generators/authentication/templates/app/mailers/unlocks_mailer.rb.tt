@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class UnlocksMailer < ApplicationMailer
   def unlock_instructions(user)
     @user = user
