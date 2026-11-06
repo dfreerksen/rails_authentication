@@ -26,6 +26,17 @@ RSpec.describe RailsAuthentication::Generators::Features::Recoverable, type: :ge
     assert_file "app/views/passwords_mailer/reset.text.erb", /edit_password_url\(@user\.reset_password_token\)/
   end
 
+  it "overwrites the password pages with translated versions" do
+    run_generator
+
+    assert_file "app/views/passwords/new.html.erb",
+                /form_with url: passwords_path/,
+                /form\.submit t\('\.form\.button\.submit'\)/
+    assert_file "app/views/passwords/edit.html.erb",
+                /form_with url: password_path\(params\[:token\]\), method: :put/,
+                /placeholder: t\('\.form\.input\.password\.placeholder'\)/
+  end
+
   it "terminates all of the user's sessions on password reset" do
     run_generator
 
@@ -54,5 +65,7 @@ RSpec.describe RailsAuthentication::Generators::Features::Recoverable, type: :ge
     assert_no_file "app/models/concerns/recoverable_concern.rb"
     assert_no_migration "db/migrate/add_recoverable_to_users.rb"
     assert_no_file "app/controllers/passwords_controller.rb"
+    assert_no_file "app/views/passwords/new.html.erb"
+    assert_no_file "app/views/passwords/edit.html.erb"
   end
 end

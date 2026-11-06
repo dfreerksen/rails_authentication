@@ -1,4 +1,4 @@
-<h1>Your account</h1>
+<h1><%%= t('.heading') %></h1>
 
 <%%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
 <%%= tag.div(flash[:notice], style: "color:green") if flash[:notice] %>
@@ -13,14 +13,14 @@
 
 <%%= form_with url: registration_path, method: :patch do |form| %>
   <%%= form.email_field :email_address, required: true, autocomplete: "username", value: @user.email_address %><br>
-  <%%= form.password_field :password, autocomplete: "new-password", placeholder: "New password (leave blank to keep current)", maxlength: 72 %><br>
-  <%%= form.password_field :password_confirmation, autocomplete: "new-password", placeholder: "Repeat new password", maxlength: 72 %><br>
-  <%%= form.submit "Update" %>
+  <%%= form.password_field :password, autocomplete: "new-password", placeholder: t('.form.input.password.placeholder'), maxlength: <%= password_maxlength %> %><br>
+  <%%= form.password_field :password_confirmation, autocomplete: "new-password", placeholder: t('.form.input.password_confirmation.placeholder'), maxlength: <%= password_maxlength %> %><br>
+  <%%= form.submit t('.form.button.submit') %>
 <%% end %>
 <br>
 
 <% if passkey? -%>
-<%%= link_to "Manage your passkeys", webauthn_credentials_path %>
+<%%= link_to t('.links.passkeys'), webauthn_credentials_path %>
 <br><br>
 <% end -%>
-<%%= button_to "Delete my account", registration_path, method: :delete, data: { turbo_confirm: "Are you sure?" } %>
+<%%= button_to t('.links.delete'), registration_path, method: :delete, data: { turbo_confirm: t('.confirmation.delete') } %>

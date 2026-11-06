@@ -41,7 +41,7 @@ RSpec.describe RailsAuthentication::Generators::Features::MagicLink, type: :gene
   it "links to the magic link page from the sign-in page" do
     run_generator %w[--magic-link]
 
-    assert_file "app/views/sessions/new.html.erb", /link_to "Sign in with magic link", new_magic_link_path/
+    assert_file "app/views/sessions/new.html.erb", /link_to t\('\.links\.magic_link'\), new_magic_link_path/
   end
 
   it "hooks the other features into the magic link sign-in flow" do

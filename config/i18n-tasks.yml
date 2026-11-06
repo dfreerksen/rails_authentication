@@ -1,0 +1,31 @@
+# i18n-tasks checks the locale file the generator produces, not the .tt template:
+# spec/dummy is built by the real generator (bin/prepare_dummy), so this config points
+# every path into it. Run `bundle exec rake dummy:prepare` before `rake spec:i18n`.
+base_locale: en
+locales: [en]
+
+data:
+  read:
+    - spec/dummy/config/locales/authentication.en.yml
+  # Also where the "files are normalized" check routes keys, so it must name the same file.
+  write:
+    - spec/dummy/config/locales/authentication.en.yml
+  yaml:
+    write:
+      # Don't wrap long strings at 80 columns.
+      line_width: -1
+
+# Validation messages are looked up by Rails from errors.add(:attribute, :type), not a t() call,
+# so i18n-tasks can't see that they're used.
+ignore_unused:
+  - "activerecord.errors.models.*"
+
+search:
+  paths:
+    - spec/dummy/app
+  # Lazy lookups like t('.links.ott') resolve against these roots.
+  relative_roots:
+    - spec/dummy/app/controllers
+    - spec/dummy/app/helpers
+    - spec/dummy/app/mailers
+    - spec/dummy/app/views

@@ -10,9 +10,9 @@ class UserAuth < ApplicationRecord
   def self.record(user, request, success:, failure_reason: nil)
     create!(
       user: user,
-      ip: request.remote_ip,
-      user_agent: request.user_agent,
-      referrer: request.referer,
+      ip: request&.remote_ip || "",
+      user_agent: request&.user_agent || "",
+      referrer: request&.referer || "",
       success: success,
       failure_reason: failure_reason
     )

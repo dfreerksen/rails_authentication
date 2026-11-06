@@ -1,11 +1,11 @@
-<h1>Enter your sign-in code</h1>
+<h1><%%= t('.heading') %></h1>
 
 <%%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
 <%%= tag.div(flash[:notice], style: "color:green") if flash[:notice] %>
 
 <p>
-  We emailed a <%%= OttConcern::OTT_CODE_LENGTH %>-digit code to <%%= session[:ott_email_address] %>.
-  It expires in <%%= distance_of_time_in_words(0, OttConcern::OTT_EXPIRES_IN) %>.
+  <%%= t('.emailed_code_to', digit_count: OttConcern::OTT_CODE_LENGTH, email: session[:ott_email_address]) %>
+  <%%= t('.expires_in', expires_in: distance_of_time_in_words(0, OttConcern::OTT_EXPIRES_IN)) %>
 </p>
 
 <%%= form_with url: ott_path, method: :patch do |form| %>
@@ -14,19 +14,19 @@
     <%% OttConcern::OTT_CODE_LENGTH.times do |i| %>
       <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="<%%= OttConcern::OTT_CODE_LENGTH %>" required
              autocomplete="<%%= i.zero? ? "one-time-code" : "off" %>"
-             aria-label="Digit <%%= i + 1 %>" <%%= "autofocus" if i.zero? %>
+             aria-label="<%%= t('.form.input.digit.aria', digit: i + 1) %>" <%%= "autofocus" if i.zero? %>
              style="width:2em;text-align:center;font-size:1.5em">
     <%% end %>
   </div>
   <br>
 <% if rememberable? -%>
-  <%%= form.check_box :remember_me %> <%%= form.label :remember_me, "Remember me" %><br>
+  <%%= form.check_box :remember_me %> <%%= form.label :remember_me, t('.form.input.remember.label') %><br>
 <% end -%>
-  <%%= form.submit "Sign in" %>
+  <%%= form.submit t('.form.button.submit') %>
 <%% end %>
 <br>
 
-<%%= button_to "Resend code", ott_path, method: :post %>
+<%%= button_to t('.buttons.resend'), ott_path, method: :post %>
 
 <script>
   (function() {

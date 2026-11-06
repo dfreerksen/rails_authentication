@@ -143,9 +143,21 @@ module RailsAuthentication
         template "app/views/sessions/new.html.erb", force: true
       end
 
+      def create_locale_file
+        template "config/locales/authentication.en.yml"
+      end
+
       no_commands do
         FEATURES.each do |feature|
           define_method(:"#{feature}?") { !options[:"skip_#{feature}"] }
+        end
+
+        # The maxlength for new-password fields: Validatable's policy when it's generated,
+        # otherwise has_secure_password's hard limit (bcrypt's 72 bytes).
+        def password_maxlength
+          return "ValidatableConcern::PASSWORD_LENGTH.max" if validatable?
+
+          "ActiveModel::SecurePassword::MAX_PASSWORD_LENGTH_ALLOWED"
         end
 
         def reconfirmable?

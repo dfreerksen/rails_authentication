@@ -23,7 +23,11 @@ footprint.
 - `bundle exec rspec spec/requests` — request specs exercising the generated code at runtime
   against `spec/dummy`
 - `bundle exec rspec spec/generators/rails_authentication/generators/features/lockable_spec.rb:12` — single example by line number
-- `bundle exec rake spec` — generator specs only (default task; requests need the dummy first)
+- `bundle exec rake spec:i18n` — i18n-tasks checks (missing/unused keys, normalized, interpolations)
+  on the generated `spec/dummy/config/locales/authentication.en.yml`, configured by
+  `config/i18n-tasks.yml`; needs the dummy first. Fix failures in the
+  `authentication.en.yml.tt` template (keys sorted, i18n-tasks' YAML quoting), never in spec/dummy
+- `bundle exec rake spec` — generator specs only (default task; requests and i18n need the dummy first)
 - `bundle exec rubocop` — lint (config in `.rubocop.yml`)
 
 ### Testing against multiple Rails and json versions
@@ -37,7 +41,8 @@ incompatibility, not for its own sake — see below. Locally:
 - `bundle exec appraisal generate-install` — (re)generate `gemfiles/*.gemfile` from `Appraisals`
   and install each; run after editing `Appraisals` or the root `Gemfile`
 - `bundle exec appraisal rails-8.0-json-2 rake spec:generators` /
-  `... rake dummy:prepare` / `... rake spec:requests` — run one appraisal's slice; see
+  `... rake dummy:prepare` / `... rake spec:requests` / `... rake spec:i18n` — run one
+  appraisal's slice; see
   `bin/appraisal` for the full sequence across every appraisal
 
 `gemfiles/*.gemfile` are committed; `gemfiles/*.gemfile.lock` are gitignored (same reasoning as
@@ -117,7 +122,8 @@ files (`sessions_controller.rb`, `concerns/authentication.rb`, `views/sessions/n
 templates full of generation-time ERB conditionals (`<% if lockable? %>`), `force: true` — safe
 because the base copies were written moments earlier in the same run. Recoverable similarly
 overwrites `passwords_controller.rb` + `PasswordsMailer` (DB-backed tokens replace the base
-stateless `generates_token_for`). MagicLink's own `magic_links_controller.rb` template carries the
+stateless `generates_token_for`) and the base `passwords/new` + `passwords/edit` views (translated
+versions of the same forms). MagicLink's own `magic_links_controller.rb` template carries the
 same generation-time conditionals so its sign-in path honors Lockable/Confirmable/Invitable/
 Trackable, and the sessions view template links to it behind `<% if magic_link? %>`. Ott's
 `otts_controller.rb` does the same; additionally, the sessions view template swaps the password
@@ -125,6 +131,35 @@ form for an email-only form posting to `ott_path` behind `<% if ott? %>`, with a
 `params[:with_password]` toggle back to the password form (password machinery —
 SessionsController#create, Recoverable — stays generated and functional). In view/
 mailer templates, `<%%` escapes runtime ERB; plain `<%` is evaluated at generation time.
+
+`config/locales/authentication.en.yml.tt` follows the same rule: each feature's translations sit
+behind the same `<% if <feature>? -%>` gate as the view or mailer that uses them, so a skipped
+feature leaves no keys behind. When a view gains a `t('.…')` call inside a conditional, gate its key
+the same way; `authentication_generator_spec.rb` fails on missing *or* unused keys across a set of
+feature combinations. Keep the file in i18n-tasks' normalized form (sorted keys, Psych's quoting).
+
+No user-facing English belongs in templates; every string goes through the locale file. Key conventions:
+
+- Views use lazy lookup, `t('.heading')`, which resolves to `<controller>.<action>.heading`.
+- Controllers use `t()` with absolute keys, never lazy ones: many messages fire from private
+  helpers, `before_action`s and `rate_limit` lambdas, where Rails' lazy lookup (current action) and
+  i18n-tasks' (enclosing method) disagree. Flash messages go under `flash.<controller>.<action>`,
+  with `notice` for success and named reasons under `alert` for failures
+  (`flash.sessions.create.alert.locked`). JSON error messages use
+  `json.<controller>.<action>.alert.<reason>`.
+  A message that can fire from several actions is repeated under each one.
+- Mailers use `t('<mailer>.<action>.subject')`.
+- Model validations use `errors.add(:attribute, :type)` with the text at
+  `activerecord.errors.models.user.attributes.<attribute>.<type>`. i18n-tasks can't see that use,
+  hence `ignore_unused` in `config/i18n-tasks.yml`; the generator spec maps these `errors.add` calls
+  to their keys instead.
+- Trackable's `failure_reason` codes and log messages stay in English: they're data and developer
+  output, not UI.
+
+`password_maxlength` (in the generator's `no_commands` block) returns Ruby *source* for the
+generated views, not a number: `ValidatableConcern::PASSWORD_LENGTH.max` with Validatable, otherwise
+`ActiveModel::SecurePassword::MAX_PASSWORD_LENGTH_ALLOWED`. New-password fields use it; the sign-in
+field always uses the Rails constant so existing passwords still fit if the policy is lowered.
 
 Invitable's `User.invite!(attributes, invited_by: nil)` takes an attributes hash (not a bare email
 address) so host apps can require extra fields; `InvitationsController#create` passes
@@ -136,7 +171,7 @@ Every other feature only adds files plus one `include <Feature>Concern` line inj
 `ActiveRecord::Generators::Migration`). Mailer generation
 is guarded by `defined?(ActionMailer::Railtie)`, evaluated in the host app's process.
 
-### Testing layout (two deliberately separate layers)
+### Testing layout (deliberately separate layers)
 
 **Generator specs** (`spec/generators/`) assert on generated file contents.
 `spec/support/generator_helpers.rb` is a small stand-in for `Rails::Generators::TestCase` (whose
@@ -160,3 +195,8 @@ Gemfile
 `spec/rails_helper.rb` boots it and forces the inline ActiveJob adapter so mailer specs can assert
 on `ActionMailer::Base.deliveries`. If a template changes, rerun `rake dummy:prepare` before
 trusting request-spec results.
+
+**i18n checks** (`spec/i18n_spec.rb`, run by `rake spec:i18n`) use i18n-tasks on the dummy's
+generated `config/locales/authentication.en.yml`, the all-features output. Because they need the
+dummy, they're left out of the default `rake spec`, like the request specs. Feature combinations
+the dummy doesn't cover are checked by the locale examples in `authentication_generator_spec.rb`.

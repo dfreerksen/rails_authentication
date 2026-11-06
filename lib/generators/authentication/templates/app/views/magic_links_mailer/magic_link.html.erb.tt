@@ -1,6 +1,6 @@
 <p>
-  You can sign in to your account by following
-  <%%= link_to "this sign-in link", magic_link_url(@user.magic_link_token) %>.
+  <%%= t('.sign_in_on') %>
+  <%%= link_to t('.magic_link_page'), magic_link_url(@user.magic_link_token) %>.
 
-  This link will expire in <%%= distance_of_time_in_words(0, MagicLinkConcern::MAGIC_LINK_EXPIRES_IN) %> and can only be used once.
+  <%%= t('.expire_in', ttl: distance_of_time_in_words(0, MagicLinkConcern::MAGIC_LINK_EXPIRES_IN)) %>
 </p>

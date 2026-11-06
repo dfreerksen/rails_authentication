@@ -60,3 +60,6 @@ jobs:
 
       - name: Run request specs
         run: bundle exec appraisal ${{ matrix.appraisal }} rake spec:requests
+
+      - name: Check translations
+        run: bundle exec appraisal ${{ matrix.appraisal }} rake spec:i18n

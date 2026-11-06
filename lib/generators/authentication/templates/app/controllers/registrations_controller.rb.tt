@@ -13,10 +13,10 @@ class RegistrationsController < ApplicationController
     if @user.save
 <% if confirmable? -%>
       @user.send_confirmation_instructions
-      redirect_to new_session_path, notice: "Welcome! Check your email to confirm your account."
+      redirect_to new_session_path, notice: t("flash.registrations.create.notice")
 <% else -%>
       start_new_session_for @user
-      redirect_to after_authentication_url, notice: "Welcome! You have signed up successfully."
+      redirect_to after_authentication_url, notice: t("flash.registrations.create.notice")
 <% end -%>
     else
       render :new, status: :unprocessable_content
@@ -31,7 +31,7 @@ class RegistrationsController < ApplicationController
     @user = Current.user
 
     if @user.update(user_params_for_update)
-      redirect_to edit_registration_path, notice: "Your account has been updated."
+      redirect_to edit_registration_path, notice: t("flash.registrations.update.notice")
     else
       render :edit, status: :unprocessable_content
     end
@@ -41,7 +41,7 @@ class RegistrationsController < ApplicationController
     user = Current.user
     terminate_session
     user.destroy
-    redirect_to new_session_path, notice: "Your account has been deleted.", status: :see_other
+    redirect_to new_session_path, notice: t("flash.registrations.destroy.notice"), status: :see_other
   end
 
   private

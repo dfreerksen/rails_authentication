@@ -1,4 +1,4 @@
-You have been invited. Set your password and activate your account on
+<%%= t('.activate_on') %>
 <%%= edit_invitation_url(@user.invitation_token) %>
 
-This link will expire in <%%= distance_of_time_in_words(0, InvitableConcern::INVITATION_TOKEN_EXPIRES_IN) %>.
+<%%= t('.expire_in', ttl: distance_of_time_in_words(0, InvitableConcern::INVITATION_TOKEN_EXPIRES_IN)) %>

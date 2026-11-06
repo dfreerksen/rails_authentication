@@ -4,7 +4,7 @@ require "bundler/gem_tasks"
 require "rspec/core/rake_task"
 
 RSpec::Core::RakeTask.new(:spec) do |t|
-  t.exclude_pattern = "spec/requests/**/*_spec.rb"
+  t.exclude_pattern = "{spec/requests/**/*_spec.rb,spec/i18n_spec.rb}"
 end
 
 namespace :spec do
@@ -16,6 +16,11 @@ namespace :spec do
   desc "Run request specs against spec/dummy (run `rake dummy:prepare` first)"
   RSpec::Core::RakeTask.new(:requests) do |t|
     t.pattern = "spec/requests/**/*_spec.rb"
+  end
+
+  desc "Check the generated locale file in spec/dummy with i18n-tasks (run `rake dummy:prepare` first)"
+  RSpec::Core::RakeTask.new(:i18n) do |t|
+    t.pattern = "spec/i18n_spec.rb"
   end
 end
 

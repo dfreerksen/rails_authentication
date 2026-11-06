@@ -7,4 +7,5 @@ for gemfile in $(bundle exec appraisal list); do
   bundle exec appraisal "$gemfile" rake spec:generators
   bundle exec appraisal "$gemfile" rake dummy:prepare
   bundle exec appraisal "$gemfile" rake spec:requests
+  bundle exec appraisal "$gemfile" rake spec:i18n
 done

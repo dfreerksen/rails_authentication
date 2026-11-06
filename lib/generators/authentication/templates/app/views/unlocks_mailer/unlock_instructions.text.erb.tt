@@ -1,6 +1,6 @@
-Your account has been locked due to too many failed sign-in attempts.
+<%%= t('.attempts') %>
 
-You can unlock it now on
+<%%= t('.unlock_on') %>
 <%%= unlock_url(@user.unlock_token) %>
 
-or wait <%%= distance_of_time_in_words(0, LockableConcern::UNLOCK_IN) %> for the lock to expire on its own.
+<%%= t('.or_wait', ttl: distance_of_time_in_words(0, LockableConcern::UNLOCK_IN)) %>

@@ -4,34 +4,34 @@
 <% if ott? -%>
 <%% if params[:with_password].blank? %>
 <%%= form_with url: ott_path do |form| %>
-  <%%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "Enter your email address", value: params[:email_address] %><br>
-  <%%= form.submit "Email me a sign-in code" %>
+  <%%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: t('.ott.form.input.email.placeholder'), value: params[:email_address] %><br>
+  <%%= form.submit t('.ott.form.button.submit') %>
 <%% end %>
 <br>
 
-<br><%%= link_to "Sign in with password instead", new_session_path(with_password: 1) %>
+<br><%%= link_to t('.links.session'), new_session_path(with_password: 1) %>
 <%% else %>
 <% end -%>
 <%%= form_with url: session_path do |form| %>
-  <%%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "Enter your email address", value: params[:email_address] %><br>
-  <%%= form.password_field :password, required: true, autocomplete: "current-password", placeholder: "Enter your password", maxlength: 72 %><br>
+  <%%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: t('.session.form.input.email.placeholder'), value: params[:email_address] %><br>
+  <%%= form.password_field :password, required: true, autocomplete: "current-password", placeholder: t('.session.form.input.password.placeholder'), maxlength: ActiveModel::SecurePassword::MAX_PASSWORD_LENGTH_ALLOWED %><br>
 <% if rememberable? -%>
-  <%%= form.check_box :remember_me %> <%%= form.label :remember_me, "Remember me" %><br>
+  <%%= form.check_box :remember_me %> <%%= form.label :remember_me, t('.session.form.input.remember.label') %><br>
 <% end -%>
-  <%%= form.submit "Sign in" %>
+  <%%= form.submit t('.session.form.button.submit') %>
 <%% end %>
 <br>
 <% if ott? -%>
 
-<br><%%= link_to "Sign in with a one-time code instead", new_session_path %>
+<br><%%= link_to t('.links.ott'), new_session_path %>
 <%% end %>
 <% end -%>
 
 <% if magic_link? -%>
-<br><%%= link_to "Sign in with magic link", new_magic_link_path %>
+<br><%%= link_to t('.links.magic_link'), new_magic_link_path %>
 <% end -%>
 <% if passkey? -%>
-<br><%%= button_tag "Sign in with a passkey", type: "button", id: "passkey-sign-in-button" %>
+<br><%%= button_tag t('.links.passkey'), type: "button", id: "passkey-sign-in-button" %>
 <%%= tag.span "", id: "passkey-sign-in-error", style: "color:red" %>
 
 <%%= javascript_tag do %>
@@ -62,7 +62,11 @@
       try {
         credential = await navigator.credentials.get({ publicKey: options });
       } catch (error) {
-        document.getElementById("passkey-sign-in-error").textContent = error.message;
+        // The browser's own message is technical, so show a translated one and log the original.
+        console.error(error);
+        document.getElementById("passkey-sign-in-error").textContent = error.name === "NotAllowedError"
+          ? "<%%= j t('.error.cancelled') %>"
+          : "<%%= j t('.error.passkey') %>";
         return;
       }
 
@@ -89,19 +93,19 @@
       if (response.ok) {
         window.location.href = result.redirect_to;
       } else {
-        document.getElementById("passkey-sign-in-error").textContent = result.error || "Could not sign in with passkey.";
+        document.getElementById("passkey-sign-in-error").textContent = result.error || "<%%= j t('.error.passkey') %>";
       }
     });
   })();
 <%% end %>
 <% end -%>
-<br><%%= link_to "Forgot password?", new_password_path %>
+<br><%%= link_to t('.links.forgot_password'), new_password_path %>
 <% if registerable? -%>
-<br><%%= link_to "Sign up", new_registration_path %>
+<br><%%= link_to t('.links.sign_up'), new_registration_path %>
 <% end -%>
 <% if confirmable? -%>
-<br><%%= link_to "Resend confirmation instructions", new_confirmation_path %>
+<br><%%= link_to t('.links.resend_confirmation'), new_confirmation_path %>
 <% end -%>
 <% if lockable? -%>
-<br><%%= link_to "Resend unlock instructions", new_unlock_path %>
+<br><%%= link_to t('.links.resend_unlock'), new_unlock_path %>
 <% end -%>

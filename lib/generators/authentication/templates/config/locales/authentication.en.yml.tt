@@ -1,0 +1,415 @@
+---
+en:
+<% if validatable? -%>
+  activerecord:
+    errors:
+      models:
+        user:
+          attributes:
+            password:
+              complexity: must meet password complexity standards
+<% end -%>
+<% if confirmable? -%>
+  confirmations:
+    new:
+      form:
+        button:
+          submit: Resend confirmation instructions
+        input:
+          email:
+            placeholder: Enter your email address
+      heading: Resend confirmation instructions
+<% end -%>
+<% if confirmable? -%>
+  confirmations_mailer:
+    confirmation_instructions:
+      confirm_on: You can confirm your email address on
+      confirmation_page: this confirmation page
+      expire_in: This link will expire in %{ttl}.
+      subject: Confirm your email address
+<% end -%>
+  flash:
+<% if confirmable? -%>
+    confirmations:
+      create:
+        alert:
+          rate_limited: Try again later.
+        notice: Confirmation instructions sent (if user with that email address exists and is unconfirmed).
+      show:
+        alert:
+          invalid_token: Confirmation link is invalid or has expired.
+        notice: Your email address has been confirmed. Please sign in.
+<% end -%>
+<% if invitable? -%>
+    invitations:
+      create:
+        notice: Invitation sent to %{email_address}.
+      edit:
+        alert:
+          invalid_token: Invitation link is invalid or has expired.
+      update:
+        alert:
+          invalid_token: Invitation link is invalid or has expired.
+        notice: Welcome! Your account is ready.
+<% end -%>
+<% if magic_link? -%>
+    magic_links:
+      create:
+        alert:
+          rate_limited: Try again later.
+        notice: Sign-in link sent (if a user with that email address exists).
+      show:
+        alert:
+          invalid_token: Sign-in link is invalid or has expired.
+<% if invitable? -%>
+          invitation_pending: You must accept your invitation before signing in.
+<% end -%>
+<% if lockable? -%>
+          locked: Your account is locked. Check your email for unlock instructions.
+<% end -%>
+<% if confirmable? -%>
+          unconfirmed: You must confirm your email address before signing in.
+<% end -%>
+<% end -%>
+<% if ott? -%>
+    otts:
+      create:
+        alert:
+          rate_limited: Try again later.
+        notice: We've emailed you a sign-in code (if a user with that email address exists).
+      update:
+        alert:
+          incorrect_code: Incorrect code. Try again.
+          invalid_code: Your sign-in code is invalid or has expired. Request a new one.
+<% if invitable? -%>
+          invitation_pending: You must accept your invitation before signing in.
+<% end -%>
+<% if lockable? -%>
+          locked: Your account is locked. Check your email for unlock instructions.
+<% end -%>
+          rate_limited: Try again later.
+          too_many_attempts: Too many incorrect attempts. Request a new code.
+<% if confirmable? -%>
+          unconfirmed: You must confirm your email address before signing in.
+<% end -%>
+<% end -%>
+<% if recoverable? -%>
+    passwords:
+      create:
+        alert:
+          rate_limited: Try again later.
+        notice: Password reset instructions sent (if user with that email address exists).
+      edit:
+        alert:
+          invalid_token: Password reset link is invalid or has expired.
+      update:
+        alert:
+          invalid_token: Password reset link is invalid or has expired.
+          password_mismatch: Passwords did not match.
+        notice: Password has been reset.
+<% end -%>
+<% if registerable? -%>
+    registrations:
+      create:
+<% if confirmable? -%>
+        notice: Welcome! Check your email to confirm your account.
+<% else -%>
+        notice: Welcome! You have signed up successfully.
+<% end -%>
+      destroy:
+        notice: Your account has been deleted.
+      update:
+        notice: Your account has been updated.
+<% end -%>
+    sessions:
+      create:
+        alert:
+          invalid: Try another email address or password.
+<% if invitable? -%>
+          invitation_pending: You must accept your invitation before signing in.
+<% end -%>
+<% if lockable? -%>
+          locked: Your account is locked. Check your email for unlock instructions.
+<% end -%>
+          rate_limited: Try again later.
+<% if confirmable? -%>
+          unconfirmed: You must confirm your email address before signing in.
+<% end -%>
+<% if lockable? -%>
+    unlocks:
+      create:
+        alert:
+          rate_limited: Try again later.
+        notice: Unlock instructions sent (if user with that email address exists and is locked).
+      show:
+        alert:
+          invalid_token: Unlock link is invalid or has expired.
+        notice: Your account has been unlocked. Please sign in.
+<% end -%>
+<% if passkey? -%>
+    webauthn_credentials:
+      destroy:
+        notice: Passkey removed.
+<% end -%>
+<% if invitable? -%>
+  invitations:
+    edit:
+      form:
+        button:
+          submit: Set my password
+        input:
+          password:
+            placeholder: Choose a password
+          password_confirmation:
+            placeholder: Repeat the password
+      heading: Accept your invitation
+    new:
+      form:
+        button:
+          submit: Send invitation
+        input:
+          email:
+            placeholder: Enter your email address
+      heading: Invite someone
+<% end -%>
+<% if invitable? -%>
+  invitations_mailer:
+    invitation_instructions:
+      activate_on: You have been invited. Set your password and activate your account on
+      expire_in: This link will expire in %{ttl}.
+      invitation_page: this invitation page
+      subject: You have been invited
+<% end -%>
+<% if passkey? -%>
+  json:
+    passkey_sessions:
+      create:
+        alert:
+<% if invitable? -%>
+          invitation_pending: You must accept your invitation before signing in.
+<% end -%>
+<% if lockable? -%>
+          locked: Your account is locked. Check your email for unlock instructions.
+<% end -%>
+          not_recognized: Passkey not recognized.
+          rate_limited: Try again later.
+<% if confirmable? -%>
+          unconfirmed: You must confirm your email address before signing in.
+<% end -%>
+          verification_failed: Passkey verification failed.
+    webauthn_credentials:
+      create:
+        alert:
+          save_failed: Could not save passkey.
+<% end -%>
+<% if magic_link? -%>
+  magic_links:
+    new:
+      form:
+        button:
+          submit: Email me a sign-in link
+        input:
+          email:
+            placeholder: Enter your email address
+      heading: Sign in with magic link
+      links:
+        session: Sign in with password
+<% end -%>
+<% if magic_link? -%>
+  magic_links_mailer:
+    magic_link:
+      expire_in: This link will expire in %{ttl} and can only be used once.
+      magic_link_page: this sign-in link
+      sign_in_on: You can sign in to your account by following
+      subject: Your sign-in link
+<% end -%>
+<% if ott? -%>
+  otts:
+    edit:
+      buttons:
+        resend: Resend code
+      emailed_code_to: We emailed a %{digit_count}-digit code to %{email}.
+      expires_in: It expires in %{expires_in}.
+      form:
+        button:
+          submit: Sign in
+        input:
+          digit:
+            aria: Digit %{digit}
+<% if rememberable? -%>
+          remember:
+            label: Remember me
+<% end -%>
+      heading: Enter your sign-in code
+<% end -%>
+<% if ott? -%>
+  otts_mailer:
+    ott:
+      expire_in: This code will expire in %{ttl} and can only be used once.
+      ignore: If you didn't request it, you can ignore this email.
+      sign_in_code: 'Your sign-in code is:'
+      subject: Your sign-in code
+<% end -%>
+<% if recoverable? -%>
+  passwords:
+    edit:
+      form:
+        button:
+          submit: Save
+        input:
+          password:
+            placeholder: Enter new password
+          password_confirmation:
+            placeholder: Repeat new password
+      heading: Update your password
+    new:
+      form:
+        button:
+          submit: Email reset instructions
+        input:
+          email:
+            placeholder: Enter your email address
+      heading: Forgot your password?
+<% end -%>
+<% if recoverable? -%>
+  passwords_mailer:
+    reset:
+      expire_in: This link will expire in %{ttl}.
+      reset_on: You can reset your password on
+      reset_page: this password reset page
+      subject: Reset your password
+<% end -%>
+<% if registerable? -%>
+  registrations:
+    edit:
+      confirmation:
+        delete: Are you sure?
+      form:
+        button:
+          submit: Update
+        input:
+          password:
+            placeholder: New password (leave blank to keep current)
+          password_confirmation:
+            placeholder: Repeat new password
+      heading: Your account
+      links:
+        delete: Delete my account
+<% if passkey? -%>
+        passkeys: Manage your passkeys
+<% end -%>
+    new:
+      form:
+        button:
+          submit: Sign up
+        input:
+          email:
+            placeholder: Enter your email address
+          password:
+            placeholder: Enter a password
+          password_confirmation:
+            placeholder: Repeat the password
+      heading: Sign up
+      links:
+        sign_in: Sign in
+<% end -%>
+  sessions:
+    new:
+<% if passkey? -%>
+      error:
+        cancelled: Passkey sign-in was cancelled or timed out.
+        passkey: Could not sign in with passkey.
+<% end -%>
+      links:
+        forgot_password: Forgot password?
+<% if magic_link? -%>
+        magic_link: Sign in with magic link
+<% end -%>
+<% if ott? -%>
+        ott: Sign in with a one-time code instead
+<% end -%>
+<% if passkey? -%>
+        passkey: Sign in with a passkey
+<% end -%>
+<% if confirmable? -%>
+        resend_confirmation: Resend confirmation instructions
+<% end -%>
+<% if lockable? -%>
+        resend_unlock: Resend unlock instructions
+<% end -%>
+<% if ott? -%>
+        session: Sign in with password instead
+<% end -%>
+<% if registerable? -%>
+        sign_up: Sign up
+<% end -%>
+<% if ott? -%>
+      ott:
+        form:
+          button:
+            submit: Email me a sign-in code
+          input:
+            email:
+              placeholder: Enter your email address
+<% end -%>
+      session:
+        form:
+          button:
+            submit: Sign in
+          input:
+            email:
+              placeholder: Enter your email address
+            password:
+              placeholder: Enter your password
+<% if rememberable? -%>
+            remember:
+              label: Remember me
+<% end -%>
+<% if lockable? -%>
+  unlocks:
+    new:
+      form:
+        button:
+          submit: Resend unlock instructions
+        input:
+          email:
+            placeholder: Enter your email address
+      heading: Resend unlock instructions
+<% end -%>
+<% if lockable? -%>
+  unlocks_mailer:
+    unlock_instructions:
+      attempts: Your account has been locked due to too many failed sign-in attempts.
+      or_wait: or wait %{ttl} for the lock to expire on its own.
+      subject: Unlock your account
+      unlock_on: You can unlock it now on
+      unlock_page: this unlock page
+<% end -%>
+<% if passkey? -%>
+  webauthn_credentials:
+    create:
+      default_nickname: Passkey
+    index:
+      account_added: "%{nickname} - added %{date_added}"
+      buttons:
+        remove: Remove
+      confirmations:
+        remove: Remove this passkey?
+      heading: Your passkeys
+      links:
+        add: Add a passkey
+      none: You haven't added a passkey yet.
+    new:
+      error:
+        already_registered: This device already has a passkey for your account.
+        cancelled: Passkey creation was cancelled or timed out.
+        save: Could not save passkey.
+      form:
+        button:
+          submit: Create passkey
+        input:
+          nickname:
+            label: Name this passkey (e.g. MacBook or iPhone)
+            placeholder: Passkey
+      heading: Add a passkey
+<% end -%>

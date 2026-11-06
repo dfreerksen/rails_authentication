@@ -11,7 +11,7 @@ class InvitationsController < ApplicationController
     user = User.invite!(invitation_params, invited_by: Current.user)
 
     if user.persisted?
-      redirect_to new_invitation_path, notice: "Invitation sent to #{user.email_address}."
+      redirect_to new_invitation_path, notice: t("flash.invitations.create.notice", email_address: user.email_address)
     else
       redirect_to new_invitation_path, alert: user.errors.full_messages.to_sentence
     end
@@ -23,7 +23,7 @@ class InvitationsController < ApplicationController
   def update
     if @user.accept_invitation!(password: params[:password], password_confirmation: params[:password_confirmation])
       start_new_session_for @user
-      redirect_to after_authentication_url, notice: "Welcome! Your account is ready."
+      redirect_to after_authentication_url, notice: t("flash.invitations.update.notice")
     else
       redirect_to edit_invitation_path(params[:token]), alert: @user.errors.full_messages.to_sentence
     end
@@ -38,6 +38,13 @@ class InvitationsController < ApplicationController
 
   def set_user_by_token
     @user = User.find_by_valid_invitation_token(params[:token])
-    redirect_to new_session_path, alert: "Invitation link is invalid or has expired." unless @user
+    return if @user
+
+    alert = if action_name == "edit"
+      t("flash.invitations.edit.alert.invalid_token")
+    else
+      t("flash.invitations.update.alert.invalid_token")
+    end
+    redirect_to new_session_path, alert: alert
   end
 end

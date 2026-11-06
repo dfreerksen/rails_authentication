@@ -2,7 +2,7 @@
 
 class MagicLinksController < ApplicationController
   allow_unauthenticated_access
-  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to new_magic_link_path, alert: "Try again later." }
+  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to new_magic_link_path, alert: t("flash.magic_links.create.alert.rate_limited") }
 
   def new
   end
@@ -11,34 +11,34 @@ class MagicLinksController < ApplicationController
     user = User.find_by(email_address: params[:email_address])
     user&.send_magic_link
 
-    redirect_to new_session_path, notice: "Sign-in link sent (if a user with that email address exists)."
+    redirect_to new_session_path, notice: t("flash.magic_links.create.notice")
   end
 
   def show
     user = User.find_by_valid_magic_link_token(params[:token])
 
     if user.nil?
-      redirect_to new_magic_link_path, alert: "Sign-in link is invalid or has expired."
+      redirect_to new_magic_link_path, alert: t("flash.magic_links.show.alert.invalid_token")
 <% if lockable? -%>
     elsif user.locked?
 <% if trackable? -%>
       record_authentication_attempt(user, success: false, failure_reason: "locked")
 <% end -%>
-      redirect_to new_session_path, alert: "Your account is locked. Check your email for unlock instructions."
+      redirect_to new_session_path, alert: t("flash.magic_links.show.alert.locked")
 <% end -%>
 <% if confirmable? -%>
     elsif !user.confirmed?
 <% if trackable? -%>
       record_authentication_attempt(user, success: false, failure_reason: "unconfirmed")
 <% end -%>
-      redirect_to new_session_path, alert: "You must confirm your email address before signing in."
+      redirect_to new_session_path, alert: t("flash.magic_links.show.alert.unconfirmed")
 <% end -%>
 <% if invitable? -%>
     elsif user.invitation_pending?
 <% if trackable? -%>
       record_authentication_attempt(user, success: false, failure_reason: "invitation_pending")
 <% end -%>
-      redirect_to new_session_path, alert: "You must accept your invitation before signing in."
+      redirect_to new_session_path, alert: t("flash.magic_links.show.alert.invitation_pending")
 <% end -%>
     # Add your own authentication restrictions specific to your application
     # elsif user.deleted_at.present?

@@ -1,12 +1,12 @@
-<h1>Add a passkey</h1>
+<h1><%%= t('.heading') %></h1>
 
 <%%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
 <%%= tag.span "", id: "passkey-error", style: "color:red" %>
 
-<%%= label_tag :passkey_nickname, "Name this passkey (e.g. \"MacBook\" or \"iPhone\")" %>
-<%%= text_field_tag :passkey_nickname, nil, placeholder: "Passkey" %><br><br>
+<%%= label_tag :passkey_nickname, t('.form.input.nickname.label') %>
+<%%= text_field_tag :passkey_nickname, nil, placeholder: t('.form.input.nickname.placeholder') %><br><br>
 
-<%%= button_tag "Create passkey", type: "button", id: "create-passkey-button" %>
+<%%= button_tag t('.form.button.submit'), type: "button", id: "create-passkey-button" %>
 
 <%%= javascript_tag do %>
   (function () {
@@ -38,7 +38,13 @@
       try {
         credential = await navigator.credentials.create({ publicKey: options });
       } catch (error) {
-        document.getElementById("passkey-error").textContent = error.message;
+        // The browser's own message is technical, so show a translated one and log the original.
+        console.error(error);
+        const messages = {
+          InvalidStateError: "<%%= j t('.error.already_registered') %>",
+          NotAllowedError: "<%%= j t('.error.cancelled') %>"
+        };
+        document.getElementById("passkey-error").textContent = messages[error.name] || "<%%= j t('.error.save') %>";
         return;
       }
 
@@ -64,7 +70,7 @@
       if (response.ok) {
         window.location.href = result.redirect_to;
       } else {
-        document.getElementById("passkey-error").textContent = result.error || "Could not save passkey.";
+        document.getElementById("passkey-error").textContent = result.error || "<%%= j t('.error.save') %>";
       }
     });
   })();

@@ -1,6 +1,6 @@
-Your sign-in code is:
+<%%= t('.sign_in_code') %>
 
 <%%= @user.ott_code %>
 
-This code will expire in <%%= distance_of_time_in_words(0, OttConcern::OTT_EXPIRES_IN) %> and can only be used once.
-If you didn't request it, you can ignore this email.
+<%%= t('.expire_in', ttl: distance_of_time_in_words(0, OttConcern::OTT_EXPIRES_IN)) %>
+<%%= t('.ignore') %>

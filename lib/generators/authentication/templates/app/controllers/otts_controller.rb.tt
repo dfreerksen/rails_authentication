@@ -2,7 +2,8 @@
 
 class OttsController < ApplicationController
   allow_unauthenticated_access
-  rate_limit to: 10, within: 3.minutes, only: %i[ create update ], with: -> { redirect_to new_session_path, alert: "Try again later." }
+  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to new_session_path, alert: t("flash.otts.create.alert.rate_limited") }
+  rate_limit to: 10, within: 3.minutes, only: :update, with: -> { redirect_to new_session_path, alert: t("flash.otts.update.alert.rate_limited") }
 
   def create
     email_address = params[:email_address].presence || session[:ott_email_address]
@@ -10,7 +11,7 @@ class OttsController < ApplicationController
     user&.send_ott
     session[:ott_email_address] = email_address
 
-    redirect_to edit_ott_path, notice: "We've emailed you a sign-in code (if a user with that email address exists)."
+    redirect_to edit_ott_path, notice: t("flash.otts.create.notice")
   end
 
   def edit
@@ -22,17 +23,17 @@ class OttsController < ApplicationController
 
     case user && user.verify_ott(params[:code])
     when nil, :expired
-      redirect_to new_session_path, alert: "Your sign-in code is invalid or has expired. Request a new one."
+      redirect_to new_session_path, alert: t("flash.otts.update.alert.invalid_code")
     when :exhausted
 <% if trackable? -%>
       record_authentication_attempt(user, success: false, failure_reason: "ott_attempts_exhausted")
 <% end -%>
-      redirect_to new_session_path, alert: "Too many incorrect attempts. Request a new code."
+      redirect_to new_session_path, alert: t("flash.otts.update.alert.too_many_attempts")
     when :invalid
 <% if trackable? -%>
       record_authentication_attempt(user, success: false, failure_reason: "invalid_ott")
 <% end -%>
-      redirect_to edit_ott_path, alert: "Incorrect code. Try again."
+      redirect_to edit_ott_path, alert: t("flash.otts.update.alert.incorrect_code")
     else
       complete_ott_sign_in(user)
     end
@@ -46,7 +47,7 @@ class OttsController < ApplicationController
 <% if trackable? -%>
       record_authentication_attempt(user, success: false, failure_reason: "locked")
 <% end -%>
-      return redirect_to new_session_path, alert: "Your account is locked. Check your email for unlock instructions."
+      return redirect_to new_session_path, alert: t("flash.otts.update.alert.locked")
     end
 <% end -%>
 <% if confirmable? -%>
@@ -54,7 +55,7 @@ class OttsController < ApplicationController
 <% if trackable? -%>
       record_authentication_attempt(user, success: false, failure_reason: "unconfirmed")
 <% end -%>
-      return redirect_to new_session_path, alert: "You must confirm your email address before signing in."
+      return redirect_to new_session_path, alert: t("flash.otts.update.alert.unconfirmed")
     end
 <% end -%>
 <% if invitable? -%>
@@ -62,7 +63,7 @@ class OttsController < ApplicationController
 <% if trackable? -%>
       record_authentication_attempt(user, success: false, failure_reason: "invitation_pending")
 <% end -%>
-      return redirect_to new_session_path, alert: "You must accept your invitation before signing in."
+      return redirect_to new_session_path, alert: t("flash.otts.update.alert.invitation_pending")
     end
 <% end -%>
     # Add your own authentication restrictions specific to your application

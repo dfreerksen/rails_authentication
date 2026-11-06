@@ -47,7 +47,7 @@ RSpec.describe RailsAuthentication::Generators::Features::Passkey, type: :genera
                 /WebAuthn::Credential\.from_create/
     assert_file "app/controllers/passkey_sessions_controller.rb",
                 /WebAuthn::Credential\.from_get/
-    assert_file "app/views/webauthn_credentials/index.html.erb", /Your passkeys/
+    assert_file "app/views/webauthn_credentials/index.html.erb", /t\('\.heading'\)/
     assert_file "app/views/webauthn_credentials/new.html.erb", /navigator\.credentials\.create/
     assert_file "config/routes.rb",
                 /resources :webauthn_credentials, only: %i\[ index new create destroy \]/,
@@ -60,14 +60,15 @@ RSpec.describe RailsAuthentication::Generators::Features::Passkey, type: :genera
 
     assert_file "app/controllers/sessions_controller.rb", /WebAuthn::Credential\.options_for_get/
     assert_file "app/views/sessions/new.html.erb",
-                /Sign in with a passkey/,
+                /button_tag t\('\.links\.passkey'\)/,
                 /navigator\.credentials\.get/
+    assert_file "config/locales/authentication.en.yml", /passkey: Sign in with a passkey/
   end
 
   it "links to passkey management from the account page when registerable is enabled" do
     run_generator %w[--passkey]
 
-    assert_file "app/views/registrations/edit.html.erb", /Manage your passkeys/
+    assert_file "app/views/registrations/edit.html.erb", /link_to t\('\.links\.passkeys'\), webauthn_credentials_path/
   end
 
   it "does not reference passkeys on the account page when passkey is skipped" do

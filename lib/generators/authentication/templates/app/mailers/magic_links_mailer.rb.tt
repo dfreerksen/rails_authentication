@@ -3,6 +3,6 @@
 class MagicLinksMailer < ApplicationMailer
   def magic_link(user)
     @user = user
-    mail subject: "Your sign-in link", to: user.email_address
+    mail subject: t('magic_links_mailer.magic_link.subject'), to: user.email_address
   end
 end

@@ -98,6 +98,13 @@ the generated concerns — e.g. `TimeoutableConcern::TIMEOUT_IN`, `LockableConce
 `LockableConcern::UNLOCK_IN`, `ConfirmableConcern::CONFIRMATION_TOKEN_EXPIRES_IN`,
 `ValidatableConcern::PASSWORD_LENGTH`, `ValidatableConcern::PASSWORD_MINIMUM_COMPLEXITY`,
 `OttConcern::OTT_CODE_LENGTH` — edit them there. Concerns keep the model clean.
+`PASSWORD_LENGTH` also sets the `maxlength` of the new-password fields; its upper bound can't
+exceed 72, bcrypt's limit (`ActiveModel::SecurePassword::MAX_PASSWORD_LENGTH_ALLOWED`).
+
+All user-facing text in the generated code (views, flash messages, passkey error messages, email
+subjects, and validation messages) lives in `config/locales/authentication.en.yml`, so you can
+reword it or add other locales without touching the code. The file only contains translations for
+the features you generated.
 
 ### Inviting users
 
@@ -164,8 +171,9 @@ resources :passwords, param: :token     # from the base generator
   Confirmable to an app with existing users:
   `User.update_all(confirmed_at: Time.current)`.
 - **Recoverable** replaces the base generator's `PasswordsController`/`PasswordsMailer` (which use
-  stateless signed tokens) with DB-token versions. If you `--skip-recoverable`, the base flow is
-  left untouched.
+  stateless signed tokens) with DB-token versions, and its password pages with translated ones. If
+  you `--skip-recoverable`, the base flow is left untouched, including Rails' English-only password
+  pages and messages.
 - The generator overwrites the base generator's `SessionsController`, `Authentication` concern, and
   sessions view with versions tailored to the features you selected. Run the generator once, up
   front — re-running it after you've customized those files will prompt to overwrite them.
@@ -177,12 +185,16 @@ bundle install
 bundle exec rake spec:generators   # generator specs (fast, no app boot)
 bundle exec rake dummy:prepare     # build spec/dummy by running the real generator
 bundle exec rake spec:requests     # request specs against spec/dummy
+bundle exec rake spec:i18n         # i18n-tasks checks on spec/dummy's generated locale file
 bundle exec rspec spec/generators/rails_authentication/generators/features/lockable_spec.rb:12   # a single example
 bundle exec rubocop                # lint
 ```
 
 `spec/dummy` is generated (and gitignored), never hand-maintained, so the request specs always
-exercise exactly what the templates produce.
+exercise exactly what the templates produce. The i18n checks (configured in `config/i18n-tasks.yml`)
+run against the same generated app, so fix any failures in
+`lib/generators/authentication/templates/config/locales/authentication.en.yml.tt`, not in
+`spec/dummy`.
 
 To run the app using the dummy app generated in `spec/dummy`, run `bin/dev`
 
@@ -207,18 +219,22 @@ Run a specific Appraisal test
 bundle exec appraisal rails-8.0-json-2 rake spec:generators
 bundle exec appraisal rails-8.0-json-2 rake dummy:prepare
 bundle exec appraisal rails-8.0-json-2 rake spec:requests
+bundle exec appraisal rails-8.0-json-2 rake spec:i18n
 # rails-8.0-json-3
 bundle exec appraisal rails-8.0-json-3 rake spec:generators
 bundle exec appraisal rails-8.0-json-3 rake dummy:prepare
 bundle exec appraisal rails-8.0-json-3 rake spec:requests
+bundle exec appraisal rails-8.0-json-3 rake spec:i18n
 # rails-8.1-json-2
 bundle exec appraisal rails-8.1-json-2 rake spec:generators
 bundle exec appraisal rails-8.1-json-2 rake dummy:prepare
 bundle exec appraisal rails-8.1-json-2 rake spec:requests
+bundle exec appraisal rails-8.1-json-2 rake spec:i18n
 # rails-8.1-json-3
 bundle exec appraisal rails-8.1-json-3 rake spec:generators
 bundle exec appraisal rails-8.1-json-3 rake dummy:prepare
 bundle exec appraisal rails-8.1-json-3 rake spec:requests
+bundle exec appraisal rails-8.1-json-3 rake spec:i18n
 ```
 
 ## json 3.0 gem compatibility

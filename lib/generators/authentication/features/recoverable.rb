@@ -7,12 +7,14 @@ module RailsAuthentication
         private
 
         # Replaces the base generator's stateless generates_token_for password reset
-        # with DB-backed, revocable tokens.
+        # with DB-backed, revocable tokens, and its password pages with translated ones.
         def generate_recoverable
           template "app/models/concerns/recoverable_concern.rb"
           include_concern_in_user "RecoverableConcern"
           migration_template "db/migrate/add_recoverable_to_users.rb", "db/migrate/add_recoverable_to_users.rb"
           template "app/controllers/passwords_controller.rb", force: true
+          template "app/views/passwords/new.html.erb", force: true
+          template "app/views/passwords/edit.html.erb", force: true
 
           return unless defined?(ActionMailer::Railtie)
 

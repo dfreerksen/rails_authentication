@@ -51,12 +51,16 @@ RSpec.describe RailsAuthentication::Generators::Features::Ott, type: :generator 
 
     assert_file "app/views/sessions/new.html.erb" do |view|
       expect(view).to include("form_with url: ott_path")
-      expect(view).to include('form.submit "Email me a sign-in code"')
+      expect(view).to include("form.submit t('.ott.form.button.submit')")
       expect(view).to include("if params[:with_password].blank?")
-      expect(view).to include('link_to "Sign in with password instead", new_session_path(with_password: 1)')
-      expect(view).to include('link_to "Sign in with a one-time code instead", new_session_path')
+      expect(view).to include("link_to t('.links.session'), new_session_path(with_password: 1)")
+      expect(view).to include("link_to t('.links.ott'), new_session_path")
       expect(view).to include("form.password_field :password")
     end
+    assert_file "config/locales/authentication.en.yml",
+                /submit: Email me a sign-in code/,
+                /session: Sign in with password instead/,
+                /ott: Sign in with a one-time code instead/
   end
 
   it "keeps the password machinery intact" do

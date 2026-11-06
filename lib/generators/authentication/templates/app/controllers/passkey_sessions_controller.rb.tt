@@ -2,14 +2,14 @@
 
 class PasskeySessionsController < ApplicationController
   allow_unauthenticated_access
-  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { render json: { error: "Try again later." }, status: :too_many_requests }
+  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { render json: { error: t("json.passkey_sessions.create.alert.rate_limited") }, status: :too_many_requests }
 
   def create
     webauthn_credential = WebAuthn::Credential.from_get(params)
     stored_credential = WebauthnCredential.find_by(external_id: webauthn_credential.id)
 
     if stored_credential.nil?
-      return render json: { error: "Passkey not recognized." }, status: :unprocessable_content
+      return render json: { error: t("json.passkey_sessions.create.alert.not_recognized") }, status: :unprocessable_content
     end
 
     begin
@@ -19,7 +19,7 @@ class PasskeySessionsController < ApplicationController
         sign_count: stored_credential.sign_count
       )
     rescue WebAuthn::Error
-      return render json: { error: "Passkey verification failed." }, status: :unprocessable_content
+      return render json: { error: t("json.passkey_sessions.create.alert.verification_failed") }, status: :unprocessable_content
     end
 
     stored_credential.update!(sign_count: webauthn_credential.sign_count)
@@ -31,7 +31,7 @@ class PasskeySessionsController < ApplicationController
 <% if trackable? -%>
       record_authentication_attempt(user, success: false, failure_reason: "locked")
 <% end -%>
-      return render json: { error: "Your account is locked. Check your email for unlock instructions." }, status: :unprocessable_content
+      return render json: { error: t("json.passkey_sessions.create.alert.locked") }, status: :unprocessable_content
     end
 <% end -%>
 <% if confirmable? -%>
@@ -39,7 +39,7 @@ class PasskeySessionsController < ApplicationController
 <% if trackable? -%>
       record_authentication_attempt(user, success: false, failure_reason: "unconfirmed")
 <% end -%>
-      return render json: { error: "You must confirm your email address before signing in." }, status: :unprocessable_content
+      return render json: { error: t("json.passkey_sessions.create.alert.unconfirmed") }, status: :unprocessable_content
     end
 <% end -%>
 <% if invitable? -%>
@@ -47,7 +47,7 @@ class PasskeySessionsController < ApplicationController
 <% if trackable? -%>
       record_authentication_attempt(user, success: false, failure_reason: "invitation_pending")
 <% end -%>
-      return render json: { error: "You must accept your invitation before signing in." }, status: :unprocessable_content
+      return render json: { error: t("json.passkey_sessions.create.alert.invitation_pending") }, status: :unprocessable_content
     end
 <% end -%>
 <% if lockable? -%>
