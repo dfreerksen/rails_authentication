@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "Confirmation", type: :request do
+RSpec.describe "Confirmation" do
   it "blocks sign-in until the email address is confirmed" do
     user = create_user(confirmed: false)
     user.generate_confirmation_token!

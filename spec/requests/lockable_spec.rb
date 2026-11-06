@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "Account locking (lockable)", type: :request do
+RSpec.describe "Account locking (lockable)" do
   it "locks the account after 5 failed attempts and emails unlock instructions" do
     user = create_user
 

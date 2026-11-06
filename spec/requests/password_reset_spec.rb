@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "Password reset (recoverable)", type: :request do
+RSpec.describe "Password reset (recoverable)" do
   it "resets the password with an emailed DB-backed token" do
     user = create_user
 
@@ -31,7 +31,7 @@ RSpec.describe "Password reset (recoverable)", type: :request do
 
     user.generate_reset_password_token!
     patch "/passwords/#{user.reload.reset_password_token}",
-      params: { password: "newpassword456", password_confirmation: "newpassword456" }
+          params: { password: "newpassword456", password_confirmation: "newpassword456" }
 
     get "/"
     expect(response).to redirect_to("/session/new")
@@ -47,7 +47,7 @@ RSpec.describe "Password reset (recoverable)", type: :request do
 
     user.generate_reset_password_token!
     patch "/passwords/#{user.reload.reset_password_token}",
-      params: { password: "newpassword456", password_confirmation: "newpassword456" }
+          params: { password: "newpassword456", password_confirmation: "newpassword456" }
 
     expect(user.sessions.count).to eq(0)
     expect(user.reload).not_to be_remembered

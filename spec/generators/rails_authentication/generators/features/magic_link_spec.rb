@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe "authentication generator: magic_link", type: :generator do
+RSpec.describe RailsAuthentication::Generators::Features::MagicLink, type: :generator do
   it "is left out by default (opt-in)" do
     run_generator
 
@@ -22,14 +22,14 @@ RSpec.describe "authentication generator: magic_link", type: :generator do
     run_generator %w[--magic-link]
 
     assert_file "app/models/concerns/magic_link_concern.rb",
-      /def send_magic_link/,
-      /def find_by_valid_magic_link_token\(token\)/,
-      /def consume_magic_link_token!/
+                /def send_magic_link/,
+                /def find_by_valid_magic_link_token\(token\)/,
+                /def consume_magic_link_token!/
     assert_file "app/models/user.rb", /include MagicLinkConcern/
     assert_migration "db/migrate/add_magic_link_to_users.rb",
-      /add_column :users, :magic_link_token, :string/,
-      /add_column :users, :magic_link_sent_at, :datetime/,
-      /add_index :users, :magic_link_token, unique: true/
+                     /add_column :users, :magic_link_token, :string/,
+                     /add_column :users, :magic_link_sent_at, :datetime/,
+                     /add_index :users, :magic_link_token, unique: true/
     assert_file "app/controllers/magic_links_controller.rb", /def show/
     assert_file "app/mailers/magic_links_mailer.rb", /def magic_link\(user\)/
     assert_file "app/views/magic_links/new.html.erb", /form_with url: magic_links_path/
@@ -48,11 +48,11 @@ RSpec.describe "authentication generator: magic_link", type: :generator do
     run_generator %w[--magic-link]
 
     assert_file "app/controllers/magic_links_controller.rb",
-      /elsif user\.locked\?/,
-      /elsif !user\.confirmed\?/,
-      /elsif user\.invitation_pending\?/,
-      /user\.reset_failed_attempts!/,
-      /record_authentication_attempt\(user, success: true\)/
+                /elsif user\.locked\?/,
+                /elsif !user\.confirmed\?/,
+                /elsif user\.invitation_pending\?/,
+                /user\.reset_failed_attempts!/,
+                /record_authentication_attempt\(user, success: true\)/
   end
 
   it "renders a plain sign-in flow when the other features are skipped" do

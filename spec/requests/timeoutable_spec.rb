@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "Session timeout (timeoutable)", type: :request do
+RSpec.describe "Session timeout (timeoutable)" do
   it "expires inactive sessions" do
     user = create_user
     sign_in user

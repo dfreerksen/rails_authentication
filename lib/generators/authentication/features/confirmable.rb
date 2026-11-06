@@ -14,11 +14,11 @@ module RailsAuthentication
           template "app/views/confirmations/new.html.erb"
           route "resources :confirmations, only: %i[ new create show ], param: :token"
 
-          if defined?(ActionMailer::Railtie)
-            template "app/mailers/confirmations_mailer.rb"
-            template "app/views/confirmations_mailer/confirmation_instructions.html.erb"
-            template "app/views/confirmations_mailer/confirmation_instructions.text.erb"
-          end
+          return unless defined?(ActionMailer::Railtie)
+
+          template "app/mailers/confirmations_mailer.rb"
+          template "app/views/confirmations_mailer/confirmation_instructions.html.erb"
+          template "app/views/confirmations_mailer/confirmation_instructions.text.erb"
         end
       end
     end

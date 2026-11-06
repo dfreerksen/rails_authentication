@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe "authentication generator: rememberable", type: :generator do
+RSpec.describe RailsAuthentication::Generators::Features::Rememberable, type: :generator do
   it "generates the concern and migration" do
     run_generator
 
@@ -13,19 +13,20 @@ RSpec.describe "authentication generator: rememberable", type: :generator do
     run_generator
 
     assert_file "app/views/sessions/new.html.erb", /check_box :remember_me/
-    assert_file "app/controllers/sessions_controller.rb", /start_new_session_for user, remember: params\[:remember_me\] == "1"/
+    assert_file "app/controllers/sessions_controller.rb",
+                /start_new_session_for user, remember: params\[:remember_me\] == "1"/
     assert_file "app/controllers/concerns/authentication.rb",
-      /def start_new_session_for\(user, remember: false\)/,
-      /cookies\.signed\.permanent\[:session_id\]/,
-      /user\.forget_me!/
+                /def start_new_session_for\(user, remember: false\)/,
+                /cookies\.signed\.permanent\[:session_id\]/,
+                /user\.forget_me!/
   end
 
   it "forgets the user when terminating all of their sessions" do
     run_generator
 
     assert_file "app/controllers/concerns/authentication.rb",
-      /def terminate_all_sessions_for\(user\)\n    user\.forget_me!\n    user\.sessions\.destroy_all/,
-      /if Current\.user == user\n      Current\.session = nil\n      cookies\.delete\(:session_id\)/
+                /def terminate_all_sessions_for\(user\)\n    user\.forget_me!\n    user\.sessions\.destroy_all/,
+                /if Current\.user == user\n      Current\.session = nil\n      cookies\.delete\(:session_id\)/
   end
 
   it "is skipped with --skip-rememberable, restoring the always-permanent cookie" do
@@ -34,7 +35,7 @@ RSpec.describe "authentication generator: rememberable", type: :generator do
     assert_no_file "app/models/concerns/rememberable_concern.rb"
     assert_no_migration "db/migrate/add_rememberable_to_users.rb"
     assert_file "app/controllers/concerns/authentication.rb", /def start_new_session_for\(user\)/,
-      /cookies\.signed\.permanent\[:session_id\]/
+                /cookies\.signed\.permanent\[:session_id\]/
     assert_file "app/views/sessions/new.html.erb" do |view|
       expect(view).not_to include("remember_me")
     end
@@ -44,6 +45,6 @@ RSpec.describe "authentication generator: rememberable", type: :generator do
     run_generator %w[--skip-rememberable]
 
     assert_file "app/controllers/concerns/authentication.rb",
-      /def terminate_all_sessions_for\(user\)\n    user\.sessions\.destroy_all/
+                /def terminate_all_sessions_for\(user\)\n    user\.sessions\.destroy_all/
   end
 end

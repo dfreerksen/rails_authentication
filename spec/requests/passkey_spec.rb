@@ -3,7 +3,7 @@
 require "rails_helper"
 require "webauthn/fake_client"
 
-RSpec.describe "Passkey", type: :request do
+RSpec.describe "Passkey" do
   let(:fake_client) { WebAuthn::FakeClient.new("http://www.example.com") }
 
   around do |example|
@@ -22,8 +22,8 @@ RSpec.describe "Passkey", type: :request do
     create_result = fake_client.create(challenge: options["challenge"])
 
     post "/webauthn_credentials",
-      params: create_result.merge(nickname: "Test device").to_json,
-      headers: { "Content-Type" => "application/json" }
+         params: create_result.merge(nickname: "Test device").to_json,
+         headers: { "Content-Type" => "application/json" }
 
     expect(response).to have_http_status(:success)
     sign_out
@@ -45,11 +45,11 @@ RSpec.describe "Passkey", type: :request do
     get_result = fake_client.get(challenge: options["challenge"])
 
     post "/passkey_session",
-      params: get_result.to_json,
-      headers: { "Content-Type" => "application/json" }
+         params: get_result.to_json,
+         headers: { "Content-Type" => "application/json" }
 
     expect(response).to have_http_status(:success)
-    json = JSON.parse(response.body)
+    json = response.parsed_body
     expect(json["redirect_to"]).to be_present
 
     follow_redirect_to json["redirect_to"]
@@ -69,11 +69,11 @@ RSpec.describe "Passkey", type: :request do
     get_result = other_client.get(challenge: options["challenge"])
 
     post "/passkey_session",
-      params: get_result.to_json,
-      headers: { "Content-Type" => "application/json" }
+         params: get_result.to_json,
+         headers: { "Content-Type" => "application/json" }
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(JSON.parse(response.body)["error"]).to eq("Passkey not recognized.")
+    expect(response.parsed_body["error"]).to eq("Passkey not recognized.")
   end
 
   it "blocks locked users" do
@@ -86,11 +86,11 @@ RSpec.describe "Passkey", type: :request do
     get_result = fake_client.get(challenge: options["challenge"])
 
     post "/passkey_session",
-      params: get_result.to_json,
-      headers: { "Content-Type" => "application/json" }
+         params: get_result.to_json,
+         headers: { "Content-Type" => "application/json" }
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(JSON.parse(response.body)["error"]).to include("locked")
+    expect(response.parsed_body["error"]).to include("locked")
   end
 
   private

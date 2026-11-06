@@ -1,0 +1,65 @@
+plugins:
+  - rubocop-rails
+  - rubocop-rake
+  - rubocop-rspec
+  - rubocop-rspec_rails
+
+AllCops:
+  SuggestExtensions: true
+  NewCops: enable
+  Exclude:
+    - "RESOURCES/**/*"
+    - "spec/dummy/**/*"
+
+# https://docs.rubocop.org/rubocop/cops_metrics.html#metricsmethodlength
+Metrics/MethodLength:
+  CountAsOne:
+    - array
+    - hash
+    - heredoc
+    - method_call
+  AllowedPatterns:
+    - "\\Agenerate_"
+
+# https://docs.rubocop.org/rubocop-rails/cops_rails.html#railsdynamicfindby
+Rails/DynamicFindBy:
+  AllowedMethods:
+    - find_by_sql
+    - find_by_token_for
+    - find_by_namespace
+
+# https://docs.rubocop.org/rubocop-rails/cops_rails.html#railsrakeenvironment
+Rails/RakeEnvironment:
+  Exclude:
+    - "Rakefile"
+
+# https://docs.rubocop.org/rubocop-rspec/latest/cops_rspec.html#rspecexamplelength
+RSpec/ExampleLength:
+  Max: 15
+  CountAsOne:
+    - array
+    - hash
+    - heredoc
+    - method_call
+
+# https://docs.rubocop.org/rubocop-rspec/cops_rspec.html#rspecmultipleexpectations
+RSpec/MultipleExpectations:
+  Enabled: false
+
+# https://docs.rubocop.org/rubocop/latest/cops_style.html#styledocumentation
+Style/Documentation:
+  Enabled: false
+
+# https://docs.rubocop.org/rubocop/latest/cops_style.html#stylehashsyntax
+Style/HashSyntax:
+  Exclude:
+    - "gemfiles/*.gemfile"
+
+# https://docs.rubocop.org/rubocop/cops_style.html#stylefrozenstringliteralcomment
+Style/FrozenStringLiteralComment:
+  Exclude:
+    - "gemfiles/*.gemfile"
+
+# https://docs.rubocop.org/rubocop/latest/cops_style.html#stylestringliterals
+Style/StringLiterals:
+  EnforcedStyle: double_quotes

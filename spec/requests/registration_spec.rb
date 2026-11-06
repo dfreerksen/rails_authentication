@@ -2,13 +2,13 @@
 
 require "rails_helper"
 
-RSpec.describe "Registration", type: :request do
+RSpec.describe "Registration" do
   it "signs up a new user and sends confirmation instructions" do
-    expect {
+    expect do
       post "/registration", params: {
         email_address: "new@example.com", password: RequestHelpers::PASSWORD, password_confirmation: RequestHelpers::PASSWORD
       }
-    }.to change(User, :count).by(1)
+    end.to change(User, :count).by(1)
 
     expect(response).to redirect_to("/session/new")
 
@@ -20,11 +20,11 @@ RSpec.describe "Registration", type: :request do
   end
 
   it "re-renders the form when the user is invalid" do
-    expect {
+    expect do
       post "/registration", params: {
         email_address: "new@example.com", password: RequestHelpers::PASSWORD, password_confirmation: "different"
       }
-    }.not_to change(User, :count)
+    end.not_to change(User, :count)
 
     expect(response).to have_http_status(:unprocessable_content)
   end

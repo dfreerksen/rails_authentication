@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
-RSpec.describe "authentication generator: recoverable", type: :generator do
+RSpec.describe RailsAuthentication::Generators::Features::Recoverable, type: :generator do
   it "generates the concern, migration, and DB-token passwords controller" do
     run_generator
 
     assert_file "app/models/concerns/recoverable_concern.rb",
-      /def generate_reset_password_token!/,
-      /def find_by_valid_reset_password_token\(token\)/
+                /def generate_reset_password_token!/,
+                /def find_by_valid_reset_password_token\(token\)/
     assert_file "app/models/user.rb", /include RecoverableConcern/
     assert_migration "db/migrate/add_recoverable_to_users.rb",
-      /add_column :users, :reset_password_token, :string/,
-      /add_column :users, :reset_password_sent_at, :datetime/,
-      /add_index :users, :reset_password_token, unique: true/
+                     /add_column :users, :reset_password_token, :string/,
+                     /add_column :users, :reset_password_sent_at, :datetime/,
+                     /add_index :users, :reset_password_token, unique: true/
 
     assert_file "app/controllers/passwords_controller.rb", /find_by_valid_reset_password_token/ do |controller|
       expect(controller).not_to include("find_by_password_reset_token!") # the base generator's stateless lookup

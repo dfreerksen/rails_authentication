@@ -19,11 +19,11 @@ module RailsAuthentication
           template "app/views/otts/edit.html.erb"
           route "resource :ott, only: %i[ create edit update ]"
 
-          if defined?(ActionMailer::Railtie)
-            template "app/mailers/otts_mailer.rb"
-            template "app/views/otts_mailer/ott.html.erb"
-            template "app/views/otts_mailer/ott.text.erb"
-          end
+          return unless defined?(ActionMailer::Railtie)
+
+          template "app/mailers/otts_mailer.rb"
+          template "app/views/otts_mailer/ott.html.erb"
+          template "app/views/otts_mailer/ott.text.erb"
         end
       end
     end

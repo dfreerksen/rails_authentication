@@ -52,28 +52,26 @@ module RailsAuthentication
       source_root File.expand_path("templates", __dir__)
 
       FEATURES.each do |feature|
-        class_option :"skip_#{feature}", type: :boolean, default: false,
-          desc: "Skip #{feature}"
+        class_option :"skip_#{feature}", type: :boolean, default: false, desc: "Skip #{feature}"
       end
 
       class_option :reconfirmable, type: :boolean, default: false,
-        desc: "Confirmable: postpone email address changes until reconfirmed (adds unconfirmed_email column)"
+                                   desc: "Confirmable: postpone email address changes until reconfirmed (opt-in)"
 
       # Unlike the FEATURES above (default-on, opt-out via --skip-<feature>),
       # magic link is opt-in: it changes the sign-in UX, so it must be requested.
-      class_option :magic_link, type: :boolean, default: false,
-        desc: "Add passwordless magic link sign-in (opt-in)"
+      class_option :magic_link, type: :boolean, default: false, desc: "Add passwordless magic link sign-in (opt-in)"
 
       # Also opt-in: replaces the sign-in form with an email-only form that
       # emails a 6-digit one-time code, entered on a second screen. Password
       # machinery stays generated and functional.
       class_option :ott, type: :boolean, default: false,
-        desc: "Add one-time token (emailed 6-digit code) sign-in (opt-in)"
+                         desc: "Add one-time token (emailed 6-digit code) sign-in (opt-in)"
 
       # Also opt-in: WebAuthn passkey sign-in alongside password sign-in.
       # Requires the host app to add the `webauthn` gem itself.
       class_option :passkey, type: :boolean, default: false,
-        desc: "Add WebAuthn passkey sign-in (opt-in; requires the webauthn gem)"
+                             desc: "Add WebAuthn passkey sign-in (opt-in; requires the webauthn gem)"
 
       def install_base_authentication
         say "Running Rails' built-in authentication generator", :green

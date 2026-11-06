@@ -22,8 +22,9 @@ footprint.
   `rails new` + the real generator; required before request specs, and after any template change
 - `bundle exec rspec spec/requests` — request specs exercising the generated code at runtime
   against `spec/dummy`
-- `bundle exec rspec spec/generators/lockable_spec.rb:12` — single example by line number
+- `bundle exec rspec spec/generators/rails_authentication/generators/features/lockable_spec.rb:12` — single example by line number
 - `bundle exec rake spec` — generator specs only (default task; requests need the dummy first)
+- `bundle exec rubocop` — lint (config in `.rubocop.yml`)
 
 ### Testing against multiple Rails and json versions
 
@@ -143,6 +144,12 @@ is guarded by `defined?(ActionMailer::Railtie)`, evaluated in the host app's pro
 base-generator files the feature steps inject into, stubs `Rails::Generators.invoke`, and mixes in
 Rails' `assert_file`/`assert_migration`. Note `assert_file` with a String arg does exact
 whole-file comparison — use Regexps.
+
+Generator specs live at `spec/generators/rails_authentication/generators/features/<feature>_spec.rb`
+and `describe` their `Features::<Feature>` module (`authentication_generator_spec.rb` sits one level
+up and describes `AuthenticationGenerator`). The deep path and the constant `describe` are what
+`RSpec/DescribeClass` and `RSpec/SpecFilePathFormat` require — keep them in sync when adding a
+feature.
 
 **Request specs** (`spec/requests/`) exercise the generated code over HTTP against `spec/dummy`, a
 real Rails app **produced by the real generator** via `bin/prepare_dummy` (gitignored, never

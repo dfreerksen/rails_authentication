@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "Ott", type: :request do
+RSpec.describe "Ott" do
   it "signs in via an emailed 6-digit code, which is single-use" do
     user = create_user
 
@@ -56,12 +56,12 @@ RSpec.describe "Ott", type: :request do
     code = user.reload.ott_code
 
     4.times do
-      patch "/ott", params: { code: "000000" == code ? "111111" : "000000" }
+      patch "/ott", params: { code: code == "000000" ? "111111" : "000000" }
       expect(response).to redirect_to("/ott/edit")
     end
     expect(user.reload.ott_code).to be_present
 
-    patch "/ott", params: { code: "000000" == code ? "111111" : "000000" }
+    patch "/ott", params: { code: code == "000000" ? "111111" : "000000" }
     expect(response).to redirect_to("/session/new")
     expect(user.reload.ott_code).to be_nil
 

@@ -2,14 +2,14 @@
 
 require "rails_helper"
 
-RSpec.describe "Invitations (invitable)", type: :request do
-  it "invites a user who accepts by setting a password" do
+RSpec.describe "Invitations (invitable)" do
+  it "sends an invitation" do
     inviter = create_user(email: "inviter@example.com")
     sign_in inviter
 
-    expect {
+    expect do
       post "/invitations", params: { email_address: "invitee@example.com" }
-    }.to change(User, :count).by(1)
+    end.to change(User, :count).by(1)
 
     invitee = User.find_by!(email_address: "invitee@example.com")
     expect(invitee.invitation_token).to be_present
@@ -17,11 +17,14 @@ RSpec.describe "Invitations (invitable)", type: :request do
     expect(inviter.reload.invitations_count).to eq(1)
     expect(last_email.to).to eq(["invitee@example.com"])
     expect(last_email.text_part.body.to_s).to include(invitee.invitation_token)
+  end
 
-    sign_out
+  it "lets the invitee accept the invitation by setting a password" do
+    inviter = create_user(email: "inviter@example.com")
+    invitee = User.invite!({ email_address: "invitee@example.com" }, invited_by: inviter)
 
-    patch "/invitations/#{invitee.reload.invitation_token}",
-      params: { password: "chosenpassword1", password_confirmation: "chosenpassword1" }
+    patch "/invitations/#{invitee.invitation_token}",
+          params: { password: "chosenpassword1", password_confirmation: "chosenpassword1" }
 
     expect(response).to redirect_to("http://www.example.com/")
     invitee.reload
@@ -46,16 +49,17 @@ RSpec.describe "Invitations (invitable)", type: :request do
     post "/invitations", params: { email_address: "invitee@example.com" }
     first_token = User.find_by!(email_address: "invitee@example.com").invitation_token
 
-    expect {
+    expect do
       post "/invitations", params: { email_address: "invitee@example.com" }
-    }.not_to change(User, :count)
+    end.not_to change(User, :count)
 
     expect(User.find_by!(email_address: "invitee@example.com").invitation_token).not_to eq(first_token)
     expect(inviter.reload.invitations_count).to eq(2)
   end
 
   it "blocks sign-in for a pending invitee, but not once the invitation is accepted" do
-    invitee = create_user(email: "invitee@example.com", invitation_token: "abc", invitation_created_at: Time.current, invitation_accepted_at: nil)
+    invitee = create_user(email: "invitee@example.com", invitation_token: "abc", invitation_created_at: Time.current,
+                          invitation_accepted_at: nil)
 
     sign_in invitee
     follow_redirect!
@@ -86,9 +90,9 @@ RSpec.describe "Invitations (invitable)", type: :request do
     sign_in inviter
     ActionMailer::Base.deliveries.clear
 
-    expect {
+    expect do
       post "/invitations", params: { email_address: "not-an-email" }
-    }.not_to change(User, :count)
+    end.not_to change(User, :count)
 
     expect(response).to redirect_to("/invitations/new")
     follow_redirect!
@@ -113,7 +117,8 @@ RSpec.describe "Invitations (invitable)", type: :request do
 
     it "accepts string keys and permitted ActionController::Parameters" do
       from_hash = User.invite!({ "email_address" => "string-keys@example.com" })
-      from_params = User.invite!(ActionController::Parameters.new(email_address: "params@example.com").permit(:email_address))
+      from_params = User.invite!(ActionController::Parameters.new(email_address: "params@example.com")
+                        .permit(:email_address))
 
       expect(from_hash).to be_persisted
       expect(from_params).to be_persisted

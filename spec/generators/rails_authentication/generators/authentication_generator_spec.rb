@@ -16,22 +16,22 @@ RSpec.describe RailsAuthentication::Generators::AuthenticationGenerator, type: :
     run_generator
 
     assert_file "app/controllers/concerns/authentication.rb",
-      /helper_method :authenticated\?, :current_user/,
-      /def current_user\n\s*Current\.user\n\s*end/
+                /helper_method :authenticated\?, :current_user/,
+                /def current_user\n\s*Current\.user\n\s*end/
   end
 
   it "includes a concern in User for every model-backed feature" do
     run_generator
 
     assert_file "app/models/user.rb",
-      /include ValidatableConcern/,
-      /include RecoverableConcern/,
-      /include ConfirmableConcern/,
-      /include RememberableConcern/,
-      /include TrackableConcern/,
-      /include TimeoutableConcern/,
-      /include LockableConcern/,
-      /include InvitableConcern/
+                /include ValidatableConcern/,
+                /include RecoverableConcern/,
+                /include ConfirmableConcern/,
+                /include RememberableConcern/,
+                /include TrackableConcern/,
+                /include TimeoutableConcern/,
+                /include LockableConcern/,
+                /include InvitableConcern/
   end
 
   it "honors --skip-<feature> flags" do
@@ -48,7 +48,7 @@ RSpec.describe RailsAuthentication::Generators::AuthenticationGenerator, type: :
 
   describe "the session layer with every feature skipped" do
     before do
-      run_generator RailsAuthentication::Generators::AuthenticationGenerator::FEATURES.map { |f| "--skip-#{f}" }
+      run_generator(RailsAuthentication::Generators::AuthenticationGenerator::FEATURES.map { |f| "--skip-#{f}" })
     end
 
     it "matches the base generator's plain behavior" do
@@ -60,7 +60,7 @@ RSpec.describe RailsAuthentication::Generators::AuthenticationGenerator, type: :
       end
 
       assert_file "app/controllers/concerns/authentication.rb",
-        /cookies\.signed\.permanent\[:session_id\]/ do |concern|
+                  /cookies\.signed\.permanent\[:session_id\]/ do |concern|
         expect(concern).not_to include("timedout?")
         expect(concern).not_to include("forget_me!")
       end

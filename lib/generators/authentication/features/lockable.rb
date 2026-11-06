@@ -14,11 +14,11 @@ module RailsAuthentication
           template "app/views/unlocks/new.html.erb"
           route "resources :unlocks, only: %i[ new create show ], param: :token"
 
-          if defined?(ActionMailer::Railtie)
-            template "app/mailers/unlocks_mailer.rb"
-            template "app/views/unlocks_mailer/unlock_instructions.html.erb"
-            template "app/views/unlocks_mailer/unlock_instructions.text.erb"
-          end
+          return unless defined?(ActionMailer::Railtie)
+
+          template "app/mailers/unlocks_mailer.rb"
+          template "app/views/unlocks_mailer/unlock_instructions.html.erb"
+          template "app/views/unlocks_mailer/unlock_instructions.text.erb"
         end
       end
     end

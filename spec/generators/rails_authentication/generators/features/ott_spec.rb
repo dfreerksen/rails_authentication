@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe "authentication generator: ott", type: :generator do
+RSpec.describe RailsAuthentication::Generators::Features::Ott, type: :generator do
   it "is left out by default (opt-in)" do
     run_generator
 
@@ -23,24 +23,24 @@ RSpec.describe "authentication generator: ott", type: :generator do
     run_generator %w[--ott]
 
     assert_file "app/models/concerns/ott_concern.rb",
-      /OTT_EXPIRES_IN = 10\.minutes/,
-      /OTT_MAX_ATTEMPTS = 5/,
-      /OTT_CODE_LENGTH = 6/,
-      /def send_ott/,
-      /def verify_ott\(code\)/,
-      /def consume_ott!/
+                /OTT_EXPIRES_IN = 10\.minutes/,
+                /OTT_MAX_ATTEMPTS = 5/,
+                /OTT_CODE_LENGTH = 6/,
+                /def send_ott/,
+                /def verify_ott\(code\)/,
+                /def consume_ott!/
     assert_file "app/models/user.rb", /include OttConcern/
     assert_migration "db/migrate/add_ott_to_users.rb",
-      /add_column :users, :ott_code, :string/,
-      /add_column :users, :ott_sent_at, :datetime/,
-      /add_column :users, :ott_attempts, :integer, default: 0, null: false/
+                     /add_column :users, :ott_code, :string/,
+                     /add_column :users, :ott_sent_at, :datetime/,
+                     /add_column :users, :ott_attempts, :integer, default: 0, null: false/
     assert_file "app/controllers/otts_controller.rb", /def update/
     assert_file "app/mailers/otts_mailer.rb", /def ott\(user\)/
     assert_file "app/views/otts/edit.html.erb",
-      /form_with url: ott_path, method: :patch/,
-      /form\.hidden_field :code, id: "ott-code"/,
-      /OttConcern::OTT_CODE_LENGTH\.times do \|i\|/,
-      /getElementById\("ott-code"\)/
+                /form_with url: ott_path, method: :patch/,
+                /form\.hidden_field :code, id: "ott-code"/,
+                /OttConcern::OTT_CODE_LENGTH\.times do \|i\|/,
+                /getElementById\("ott-code"\)/
     assert_file "app/views/otts_mailer/ott.html.erb", /@user\.ott_code/
     assert_file "app/views/otts_mailer/ott.text.erb", /@user\.ott_code/
     assert_file "config/routes.rb", /resource :ott, only: %i\[ create edit update \]/
@@ -70,12 +70,12 @@ RSpec.describe "authentication generator: ott", type: :generator do
     run_generator %w[--ott]
 
     assert_file "app/controllers/otts_controller.rb",
-      /if user\.locked\?/,
-      /unless user\.confirmed\?/,
-      /if user\.invitation_pending\?/,
-      /user\.reset_failed_attempts!/,
-      /record_authentication_attempt\(user, success: true\)/,
-      /remember: params\[:remember_me\] == "1"/
+                /if user\.locked\?/,
+                /unless user\.confirmed\?/,
+                /if user\.invitation_pending\?/,
+                /user\.reset_failed_attempts!/,
+                /record_authentication_attempt\(user, success: true\)/,
+                /remember: params\[:remember_me\] == "1"/
   end
 
   it "renders a plain sign-in flow when the other features are skipped" do

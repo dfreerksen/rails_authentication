@@ -17,11 +17,11 @@ module RailsAuthentication
           template "app/views/magic_links/new.html.erb"
           route "resources :magic_links, only: %i[ new create show ], param: :token"
 
-          if defined?(ActionMailer::Railtie)
-            template "app/mailers/magic_links_mailer.rb"
-            template "app/views/magic_links_mailer/magic_link.html.erb"
-            template "app/views/magic_links_mailer/magic_link.text.erb"
-          end
+          return unless defined?(ActionMailer::Railtie)
+
+          template "app/mailers/magic_links_mailer.rb"
+          template "app/views/magic_links_mailer/magic_link.html.erb"
+          template "app/views/magic_links_mailer/magic_link.text.erb"
         end
       end
     end

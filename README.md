@@ -177,7 +177,8 @@ bundle install
 bundle exec rake spec:generators   # generator specs (fast, no app boot)
 bundle exec rake dummy:prepare     # build spec/dummy by running the real generator
 bundle exec rake spec:requests     # request specs against spec/dummy
-bundle exec rspec spec/generators/lockable_spec.rb:12   # a single example
+bundle exec rspec spec/generators/rails_authentication/generators/features/lockable_spec.rb:12   # a single example
+bundle exec rubocop                # lint
 ```
 
 `spec/dummy` is generated (and gitignored), never hand-maintained, so the request specs always

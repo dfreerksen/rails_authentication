@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "Remember me (rememberable)", type: :request do
+RSpec.describe "Remember me (rememberable)" do
   it "stamps remember_created_at and issues a persistent cookie when remember me is checked" do
     user = create_user
 

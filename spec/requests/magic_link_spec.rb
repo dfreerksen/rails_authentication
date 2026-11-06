@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "MagicLink", type: :request do
+RSpec.describe "MagicLink" do
   it "signs in via an emailed magic link, which is single-use" do
     user = create_user
 

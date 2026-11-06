@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "Authentication tracking (trackable)", type: :request do
+RSpec.describe "Authentication tracking (trackable)" do
   it "records successful sign-ins" do
     user = create_user
 
@@ -25,9 +25,9 @@ RSpec.describe "Authentication tracking (trackable)", type: :request do
   end
 
   it "records attempts against unknown email addresses without a user" do
-    expect {
+    expect do
       post "/session", params: { email_address: "ghost@example.com", password: "wrong" }
-    }.to change(UserAuth.failed, :count).by(1)
+    end.to change(UserAuth.failed, :count).by(1)
 
     expect(UserAuth.failed.last.user).to be_nil
   end

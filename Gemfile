@@ -14,3 +14,11 @@ gem "rspec", "~> 3.13"
 gem "rspec-rails", "~> 8.0"
 gem "sqlite3"
 gem "webauthn" # request specs exercise the generated Passkey feature against this bundle
+
+group :development, :test do
+  gem "rubocop", "~> 1.92.2", require: false
+  gem "rubocop-rails", "~> 2.38.0", require: false
+  gem "rubocop-rake", "~> 0.7.1", require: false
+  gem "rubocop-rspec", "~> 3.10.2", require: false
+  gem "rubocop-rspec_rails", "~> 2.33.0", require: false
+end
