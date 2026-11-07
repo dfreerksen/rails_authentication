@@ -27,7 +27,11 @@ export BUNDLE_GEMFILE
 cat > app/controllers/home_controller.rb <<'RUBY'
 class HomeController < ApplicationController
   def index
-    render plain: "Home"
+    # The dummy skips JavaScript (no Turbo), so sign-out uses button_to's form to send DELETE.
+    render inline: <<~ERB
+      <p>Home</p>
+      <%= button_to "Sign out", session_path, method: :delete %>
+    ERB
   end
 end
 RUBY

@@ -21,7 +21,7 @@ RSpec.describe RailsAuthentication::Generators::Features::Invitable, type: :gene
                      /add_reference :users, :invited_by, polymorphic: true/,
                      /add_index :users, :invitation_token, unique: true/
     assert_file "app/controllers/invitations_controller.rb",
-                /allow_unauthenticated_access only: %i\[ edit update \]/,
+                /require_unauthenticated_access only: %i\[ edit update \]/,
                 /User\.invite!\(invitation_params, invited_by: Current\.user\)/,
                 /def invitation_params\n    params\.permit\(:email_address\)\n  end/
     assert_file "app/mailers/invitations_mailer.rb", /def invitation_instructions\(user\)/
@@ -60,6 +60,19 @@ RSpec.describe RailsAuthentication::Generators::Features::Invitable, type: :gene
     assert_no_file "app/controllers/invitations_controller.rb"
     assert_file "app/controllers/sessions_controller.rb" do |controller|
       expect(controller).not_to include("invitation_pending?")
+    end
+  end
+
+  it "scopes pending invitations the way invitation_pending? sees them" do
+    run_generator
+
+    assert_file "app/models/concerns/invitable_concern.rb" do |concern|
+      expect(concern).to include(
+        "scope :pending, -> { where.not(invitation_token: nil).where(invitation_accepted_at: nil) }"
+      )
+      expect(concern).to include(
+        "scope :not_pending, -> { where(invitation_token: nil).or(where.not(invitation_accepted_at: nil)) }"
+      )
     end
   end
 end

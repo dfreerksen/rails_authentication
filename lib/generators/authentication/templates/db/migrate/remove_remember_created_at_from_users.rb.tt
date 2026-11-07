@@ -1,0 +1,11 @@
+class RemoveRememberCreatedAtFromUsers < ActiveRecord::Migration<%= migration_version %>
+  # "Remember me" moved from users to sessions (see add_rememberable_to_sessions). Apps generated
+  # before that have this column; new apps don't, so it's a no-op for them.
+  def up
+    remove_column :users, :remember_created_at if column_exists?(:users, :remember_created_at)
+  end
+
+  def down
+    add_column :users, :remember_created_at, :datetime unless column_exists?(:users, :remember_created_at)
+  end
+end

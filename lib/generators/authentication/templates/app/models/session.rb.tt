@@ -1,0 +1,45 @@
+# frozen_string_literal: true
+
+class Session < ApplicationRecord
+<% if rememberable? -%>
+  # How long a browser session lasts without activity even when it's remembered (the cookie is permanent)
+  REMEMBERED_TIMEOUT_IN = 90.days
+
+<% end -%>
+  belongs_to :user
+<% if timeoutable? && rememberable? -%>
+
+  scope :expired, lambda {
+    where(updated_at: ...REMEMBERED_TIMEOUT_IN.ago)
+      .or(where(remembered_at: nil, updated_at: ...TimeoutableConcern::TIMEOUT_IN.ago))
+  }
+
+  def remembered?
+    remembered_at.present?
+  end
+
+  def expired?
+    return false if updated_at.blank?
+
+    updated_at.before?(REMEMBERED_TIMEOUT_IN.ago) || (!remembered? && user.timedout?(updated_at))
+  end
+<% elsif timeoutable? -%>
+
+  scope :expired, -> { where(updated_at: ...TimeoutableConcern::TIMEOUT_IN.ago) }
+
+  def expired?
+    user.timedout?(updated_at)
+  end
+<% elsif rememberable? -%>
+
+  scope :expired, -> { where(updated_at: ...REMEMBERED_TIMEOUT_IN.ago) }
+
+  def remembered?
+    remembered_at.present?
+  end
+
+  def expired?
+    updated_at.present? && updated_at.before?(REMEMBERED_TIMEOUT_IN.ago)
+  end
+<% end -%>
+end

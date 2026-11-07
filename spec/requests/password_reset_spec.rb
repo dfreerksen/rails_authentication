@@ -23,36 +23,32 @@ RSpec.describe "Password reset (recoverable)" do
     expect(response).to redirect_to("http://www.example.com/")
   end
 
+  # Password reset is a signed-out flow (a signed-in browser is redirected away from it; see
+  # already_signed_in_spec.rb), so the devices that sign in are separate sessions and the reset
+  # happens in this test's own browser, which stays signed out.
   it "invalidates existing sessions when the password is reset" do
     user = create_user
-    sign_in user
-    get "/"
-    expect(response).to have_http_status(:ok)
+    device = signed_in_device(user)
+    expect(device.get("/")).to eq(200)
 
-    user.generate_reset_password_token!
-    patch "/passwords/#{user.reload.reset_password_token}",
-          params: { password: "newpassword456", password_confirmation: "newpassword456" }
-
-    get "/"
-    expect(response).to redirect_to("/session/new")
-  end
-
-  it "invalidates sessions on every device and forgets the user when the password is reset" do
-    user = create_user
-    other_device = open_session
-    other_device.post "/session", params: { email_address: user.email_address, password: RequestHelpers::PASSWORD }
-    sign_in user, remember: true
-    expect(user.sessions.count).to eq(2)
-    expect(user.reload).to be_remembered
-
-    user.generate_reset_password_token!
-    patch "/passwords/#{user.reload.reset_password_token}",
-          params: { password: "newpassword456", password_confirmation: "newpassword456" }
+    reset_password(user)
 
     expect(user.sessions.count).to eq(0)
-    expect(user.reload).not_to be_remembered
-    other_device.get "/"
-    expect(other_device.response).to redirect_to("/session/new")
+    expect(device.get("/")).to eq(302)
+  end
+
+  it "invalidates sessions on every device, remembered or not, when the password is reset" do
+    user = create_user
+    remembered_device = signed_in_device(user, remember: true)
+    other_device = signed_in_device(user)
+    expect(user.sessions.count).to eq(2)
+    expect(user.sessions.select(&:remembered?).size).to eq(1)
+
+    reset_password(user)
+
+    expect(user.sessions.count).to eq(0)
+    expect(remembered_device.get("/")).to eq(302)
+    expect(other_device.get("/")).to eq(302)
   end
 
   it "rejects expired reset tokens" do
@@ -73,5 +69,18 @@ RSpec.describe "Password reset (recoverable)" do
 
     expect(response).to redirect_to("/session/new")
     expect(ActionMailer::Base.deliveries).to be_empty
+  end
+
+  def signed_in_device(user, remember: false)
+    params = { email_address: user.email_address, password: RequestHelpers::PASSWORD }
+    params[:remember_me] = "1" if remember
+    open_session.tap { |device| device.post "/session", params: params }
+  end
+
+  def reset_password(user)
+    user.generate_reset_password_token!
+    patch "/passwords/#{user.reload.reset_password_token}",
+          params: { password: "newpassword456", password_confirmation: "newpassword456" }
+    expect(response).to redirect_to("/session/new")
   end
 end

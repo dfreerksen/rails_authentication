@@ -11,7 +11,7 @@ gem extends that same command to also install:
 | **Confirmable** | Emails confirmation instructions; blocks sign-in until the email address is confirmed |
 | **Recoverable** | Password reset with DB-backed, revocable, expiring tokens (replaces the base stateless tokens) |
 | **Registerable** | Sign-up, plus account editing and deletion |
-| **Rememberable** | "Remember me" checkbox — persistent cookie only when checked |
+| **Rememberable** | Per-browser "Remember me" checkbox — persistent cookie only when checked, stamped on that session (`sessions.remembered_at`) so other devices are unaffected |
 | **Trackable** | Records every sign-in attempt (success and failure) in a `user_auths` table: IP, user agent, referrer, failure reason |
 | **Timeoutable** | Expires sessions after 30 minutes of inactivity |
 | **Validatable** | Email format/uniqueness, password length, and password complexity validations |
@@ -92,9 +92,58 @@ register any number of passkeys, each stored as its own row in `webauthn_credent
 All three flows honor the other enabled features: locked, unconfirmed, or invitation-pending
 accounts still can't sign in, and Trackable records the attempt.
 
+Signed-out pages (sign-in, sign-up, password reset, confirmation and unlock requests, invitation
+acceptance, magic link and one-time code sign-in) redirect an already-signed-in user to the root
+path with "You are already signed in." The emailed confirmation link stays reachable so a
+signed-in user can confirm an email change.
+
+Every controller requires a signed-in user unless it says otherwise. Three class methods, all
+taking `before_action`'s `only:`/`except:` options, declare access:
+
+| Method | Who can access |
+|---|---|
+| `allow_unauthenticated_access` | Everyone, signed in or not |
+| `require_unauthenticated_access` | Signed-out visitors only; signed-in users are redirected to the root path |
+| `require_authenticated_access` | Signed-in users only (the default; use it to be explicit, or to re-protect actions a parent controller opened) |
+
+After signing in by any method, a user returns to the page they were sent away from (page visits
+only, not form submissions or JSON requests). With no such page they land on
+`default_after_authentication_url`, which is `root_url` unless you override it in
+`ApplicationController`; already-signed-in users redirected away from signed-out pages land there
+too:
+
+```ruby
+class ApplicationController < ActionController::Base
+  include Authentication
+
+  private
+
+  def default_after_authentication_url
+    dashboard_url
+  end
+end
+```
+
 Each feature adds a single `include <Feature>Concern` line to `app/models/user.rb`; all of its
-model behavior lives in `app/models/concerns/<feature>_concern.rb`. Tunables are plain constants in
-the generated concerns — e.g. `TimeoutableConcern::TIMEOUT_IN`, `LockableConcern::MAXIMUM_ATTEMPTS`,
+model behavior lives in `app/models/concerns/<feature>_concern.rb`. Rememberable is the exception:
+"remember me" belongs to one browser, not the user, so it's a `remembered_at` column on `sessions`
+and `Session#remembered?`, with no User concern. Checking or unchecking it, or signing out, on one
+device never changes another device's session. Magic link and passkey sign-ins aren't remembered.
+Apps generated before this change get a `remove_remember_created_at_from_users` migration that
+drops the old `users.remember_created_at` column (a no-op where it doesn't exist); previously
+remembered users simply need to check "Remember me" again.
+Each feature's concern adds scopes that match its checks: `User.confirmed` / `unconfirmed`,
+`User.locked` / `not_locked` (a lock expires after `LockableConcern::UNLOCK_IN`, as at sign-in), and
+`User.pending` / `not_pending` / `accepted` for invitations (users who signed up without one are
+never `pending`). `User.available` combines the enabled ones into "can sign in" (confirmed, not locked,
+no outstanding invitation) and `User.unavailable` is everyone else. The instance versions are
+`user.available?` (also `active_for_authentication?`, Devise's name) and `user.unavailable?`.
+
+Session expiry lives in the generated `app/models/session.rb`: `Session#expired?` (checked on
+every request) and a `Session.expired` scope you can use to purge stale rows, e.g. from a
+recurring job (`Session.expired.delete_all`). Remembered sessions are exempt from Timeoutable's
+inactivity timeout but still expire after `Session::REMEMBERED_TIMEOUT_IN` (90 days) of inactivity. Tunables are plain constants in
+the generated concerns — e.g. `TimeoutableConcern::TIMEOUT_IN`, `Session::REMEMBERED_TIMEOUT_IN`, `LockableConcern::MAXIMUM_ATTEMPTS`,
 `LockableConcern::UNLOCK_IN`, `ConfirmableConcern::CONFIRMATION_TOKEN_EXPIRES_IN`,
 `ValidatableConcern::PASSWORD_LENGTH`, `ValidatableConcern::PASSWORD_MINIMUM_COMPLEXITY`,
 `OttConcern::OTT_CODE_LENGTH` — edit them there. Concerns keep the model clean.

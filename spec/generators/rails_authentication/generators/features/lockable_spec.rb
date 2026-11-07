@@ -42,4 +42,12 @@ RSpec.describe RailsAuthentication::Generators::Features::Lockable, type: :gener
       expect(controller).not_to include("register_failed_attempt!")
     end
   end
+
+  it "scopes locks the way locked? sees them, expiring after UNLOCK_IN" do
+    run_generator
+
+    assert_file "app/models/concerns/lockable_concern.rb",
+                /scope :locked, -> \{ where\(locked_at: UNLOCK_IN\.ago\.\.\) \}/,
+                /scope :not_locked, -> \{ where\(locked_at: nil\)\.or\(where\(locked_at: \.\.\.UNLOCK_IN\.ago\)\) \}/
+  end
 end

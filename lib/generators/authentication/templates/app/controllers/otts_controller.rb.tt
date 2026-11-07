@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class OttsController < ApplicationController
-  allow_unauthenticated_access
+  require_unauthenticated_access
   rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to new_session_path, alert: t("flash.otts.create.alert.rate_limited") }
   rate_limit to: 10, within: 3.minutes, only: :update, with: -> { redirect_to new_session_path, alert: t("flash.otts.update.alert.rate_limited") }
 

@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 class ConfirmationsController < ApplicationController
-  allow_unauthenticated_access
+  # show stays open to everyone: with --reconfirmable, a signed-in user confirms an email change there.
+  allow_unauthenticated_access only: :show
+  require_unauthenticated_access except: :show
   rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to new_confirmation_path, alert: t("flash.confirmations.create.alert.rate_limited") }
 
   def new

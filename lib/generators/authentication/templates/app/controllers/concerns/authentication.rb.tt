@@ -8,9 +8,26 @@ module Authentication
     helper_method :authenticated?, :current_user
   end
 
+  # Every controller requires a signed-in user by default (the before_action above).
   class_methods do
+    # Open to everyone, signed in or not.
     def allow_unauthenticated_access(**options)
       skip_before_action :require_authentication, **options
+    end
+
+    # Signed-out only, for sign-in, sign-up, and the other signed-out flows: open to visitors,
+    # while a user who is already signed in is sent to the root path instead.
+    def require_unauthenticated_access(**options)
+      allow_unauthenticated_access(**options)
+      before_action :redirect_signed_in_user, **options
+    end
+
+    # Signed-in only. Already the default, so this is for being explicit, or for re-protecting
+    # actions a parent controller opened with allow_unauthenticated_access. It registers its
+    # own callback rather than :require_authentication: re-registering that one with only:/except:
+    # would replace the default and leave the other actions unprotected.
+    def require_authenticated_access(**options)
+      before_action :enforce_authentication, **options
     end
   end
 
@@ -28,20 +45,31 @@ module Authentication
     resume_session || request_authentication
   end
 
+  def enforce_authentication
+    require_authentication
+  end
+
+  # allow_unauthenticated_access skips resume_session, so authenticated? loads it here.
+  def redirect_signed_in_user
+    return unless authenticated?
+
+    if request.format.json?
+      render json: { error: t("flash.authentication.alert.already_signed_in") }, status: :forbidden
+    else
+      redirect_to default_after_authentication_url, alert: t("flash.authentication.alert.already_signed_in")
+    end
+  end
+
   def resume_session
     Current.session ||= find_session_by_cookie
   end
 
-<% if timeoutable? -%>
+<% if timeoutable? || rememberable? -%>
   def find_session_by_cookie
     return unless cookies.signed[:session_id]
     return unless session = Session.find_by(id: cookies.signed[:session_id])
 
-<% if rememberable? -%>
-    if !session.user.remembered? && session.user.timedout?(session.updated_at)
-<% else -%>
-    if session.user.timedout?(session.updated_at)
-<% end -%>
+    if session.expired?
       session.destroy
       cookies.delete(:session_id)
       nil
@@ -56,25 +84,36 @@ module Authentication
   end
 <% end -%>
 
+  # Only page visits are remembered: returning to a form submission or a JSON/XHR endpoint
+  # after sign-in would hit the wrong action (a GET to a POST-only URL) or render raw data.
   def request_authentication
-    session[:return_to_after_authenticating] = request.url
+    session[:return_to_after_authenticating] = request.url if request.get? && request.format.html? && !request.xhr?
     redirect_to new_session_path
   end
 
+  # Where every sign-in flow lands: the page the user was sent away from, otherwise the default.
   def after_authentication_url
-    session.delete(:return_to_after_authenticating) || root_url
+    session.delete(:return_to_after_authenticating) || default_after_authentication_url
+  end
+
+  # Where signed-in users land when there's no page to return to. Override it in
+  # ApplicationController (e.g. `dashboard_url`) to change the default for every flow.
+  def default_after_authentication_url
+    root_url
   end
 
 <% if rememberable? -%>
+  # Remembering is per browser: it's stamped on this session only, never on the user,
+  # so other devices' sessions are unaffected.
   def start_new_session_for(user, remember: false)
-    user.sessions.create!(user_agent: request.user_agent, ip_address: request.remote_ip).tap do |session|
+    user.sessions.create!(
+      user_agent: request.user_agent, ip_address: request.remote_ip, remembered_at: (Time.current if remember)
+    ).tap do |session|
       Current.session = session
 
       if remember
-        user.remember_me!
         cookies.signed.permanent[:session_id] = { value: session.id, httponly: true, same_site: :lax }
       else
-        user.forget_me!
         cookies.signed[:session_id] = { value: session.id, httponly: true, same_site: :lax }
       end
     end
@@ -89,17 +128,11 @@ module Authentication
 <% end -%>
 
   def terminate_session
-<% if rememberable? -%>
-    Current.session.user.forget_me!
-<% end -%>
     Current.session.destroy
     cookies.delete(:session_id)
   end
 
   def terminate_all_sessions_for(user)
-<% if rememberable? -%>
-    user.forget_me!
-<% end -%>
     user.sessions.destroy_all
 
     if Current.user == user

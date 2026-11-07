@@ -6,6 +6,12 @@ module LockableConcern
   MAXIMUM_ATTEMPTS = 5
   UNLOCK_IN = 1.hour
 
+  included do
+    # Match locked?: a lock expires on its own after UNLOCK_IN.
+    scope :locked, -> { where(locked_at: UNLOCK_IN.ago..) }
+    scope :not_locked, -> { where(locked_at: nil).or(where(locked_at: ...UNLOCK_IN.ago)) }
+  end
+
   class_methods do
     def find_by_valid_unlock_token(token)
       return if token.blank?

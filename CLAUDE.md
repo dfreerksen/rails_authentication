@@ -105,7 +105,8 @@ One generator class; Thor runs its public methods in definition order:
 Session/Current, SessionsController, PasswordsController, Authentication concern, migrations,
 routes) → one `install_<feature>` step per feature (each early-returns on its skip flag — or, for
 MagicLink/Ott, on the absence of the opt-in flag — and delegates to a module in
-`lib/generators/authentication/features/`) → `customize_session_layer`. MagicLink and Ott are
+`lib/generators/authentication/features/`) → `format_user_model` → `add_user_scopes` →
+`customize_session_layer`. MagicLink and Ott are
 deliberately NOT in `FEATURES` (that constant drives the `--skip-<feature>` options and
 `<feature>?` query methods); their `--magic-link`/`--ott` options and `magic_link?`/`ott?` helpers
 are declared separately.
@@ -117,8 +118,9 @@ steps. Query helpers (`confirmable?` etc.) sit in a `no_commands` block for the 
 ### Conditional templates over injection
 
 Confirmable, Rememberable, Trackable, Timeoutable, and Lockable all hook the sign-in flow. Rather
-than fragile `inject_into_file` edits, `customize_session_layer` overwrites three base-generator
-files (`sessions_controller.rb`, `concerns/authentication.rb`, `views/sessions/new.html.erb`) with
+than fragile `inject_into_file` edits, `customize_session_layer` overwrites four base-generator
+files (`models/session.rb`, `sessions_controller.rb`, `concerns/authentication.rb`,
+`views/sessions/new.html.erb`) with
 templates full of generation-time ERB conditionals (`<% if lockable? %>`), `force: true` — safe
 because the base copies were written moments earlier in the same run. Recoverable similarly
 overwrites `passwords_controller.rb` + `PasswordsMailer` (DB-backed tokens replace the base
@@ -147,7 +149,10 @@ No user-facing English belongs in templates; every string goes through the local
   with `notice` for success and named reasons under `alert` for failures
   (`flash.sessions.create.alert.locked`). JSON error messages use
   `json.<controller>.<action>.alert.<reason>`.
-  A message that can fire from several actions is repeated under each one.
+  A message that can fire from several actions is repeated under each one. The one exception is
+  `flash.authentication.alert.already_signed_in`, fired by the `Authentication` concern's
+  `redirect_signed_in_user` across every signed-out flow (and reused as Passkey's JSON error):
+  a single shared key, always generated, rather than a copy under each controller and action.
 - Mailers use `t('<mailer>.<action>.subject')`.
 - Model validations use `errors.add(:attribute, :type)` with the text at
   `activerecord.errors.models.user.attributes.<attribute>.<type>`. i18n-tasks can't see that use,
@@ -166,8 +171,37 @@ address) so host apps can require extra fields; `InvitationsController#create` p
 `invitation_params` (`params.permit(:email_address)`). The README's "Inviting users" section
 documents the contract — keep it in sync with the concern.
 
+Access is declared with three `Authentication` class methods. Sign-in is required by default
+(the concern's global `before_action :require_authentication`); `allow_unauthenticated_access`
+opens actions to everyone (Rails' own method, unchanged); `require_unauthenticated_access` makes
+them signed-out only (it calls `allow_unauthenticated_access` and redirects a signed-in user to
+`root_path`, or a 403 JSON error for Passkey); `require_authenticated_access` re-states or
+re-imposes sign-in. Every signed-out controller (sessions, registrations, passwords,
+confirmations, unlocks, invitations edit/update, magic links, otts, passkey sessions) declares
+`require_unauthenticated_access` alone; ConfirmationsController alone pairs it with
+`allow_unauthenticated_access only: :show`, because with `--reconfirmable` a signed-in user
+confirms an email change through that link. `require_authenticated_access` uses its own
+`:enforce_authentication` callback on purpose: re-registering `:require_authentication` with
+`only:`/`except:` would replace the global callback and leave the other actions public.
+Every sign-in flow redirects to `after_authentication_url` (the stored return-to page, else
+`default_after_authentication_url`, `root_url` by default and meant to be overridden in the host's
+`ApplicationController`); `redirect_signed_in_user` uses the same default. A new sign-in flow must
+redirect to `after_authentication_url`, not a hard-coded path.
+
+`add_user_scopes` injects `User.available` / `User.unavailable` after `has_many :sessions`,
+chaining the enabled features' scopes (`confirmed`, `not_locked`, `not_pending`; see
+`available_user_scope_chain`) so `available` matches exactly the users the sign-in flows let in. `add_user_availability_predicates`
+adds the instance versions after `normalizes :email_address` (`available?`, aliased
+`active_for_authentication?`, and `unavailable?`), built from the same features in `availability_checks`. Feature scopes must agree with
+their instance predicates — `locked`/`not_locked` honor `UNLOCK_IN` like `locked?`, and
+`pending`/`not_pending` require an invitation token like `invitation_pending?` (users who
+signed up uninvited are never `pending`). A new sign-in check belongs in that chain too.
+
 Every other feature only adds files plus one `include <Feature>Concern` line injected into
-`app/models/user.rb`. Migrations use `migration_template` (via
+`app/models/user.rb`. Rememberable is the exception: "remember me" is per browser, stored as
+`sessions.remembered_at` (its migration targets `sessions`) with `Session#remembered?` in the
+`session.rb` template; there's no User concern and nothing on `users`. Don't move it back onto
+the user: one device's sign-in or sign-out must never un-remember another's session. Migrations use `migration_template` (via
 `ActiveRecord::Generators::Migration`). Mailer generation
 is guarded by `defined?(ActionMailer::Railtie)`, evaluated in the host app's process.
 

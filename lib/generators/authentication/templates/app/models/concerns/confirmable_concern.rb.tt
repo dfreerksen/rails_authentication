@@ -4,13 +4,16 @@ module ConfirmableConcern
   extend ActiveSupport::Concern
 
   CONFIRMATION_TOKEN_EXPIRES_IN = 24.hours
-<% if reconfirmable? -%>
 
   included do
+<% if reconfirmable? -%>
     before_update :postpone_email_address_change, if: :postponing_email_address_change?
     after_update_commit :deliver_reconfirmation_instructions, if: -> { saved_change_to_unconfirmed_email? && unconfirmed_email.present? }
-  end
+
 <% end -%>
+    scope :confirmed, -> { where.not(confirmed_at: nil) }
+    scope :unconfirmed, -> { where(confirmed_at: nil) }
+  end
 
   class_methods do
     def find_by_valid_confirmation_token(token)

@@ -5,7 +5,7 @@ RSpec.describe RailsAuthentication::Generators::Features::Registerable, type: :g
     run_generator
 
     assert_file "app/controllers/registrations_controller.rb",
-                /allow_unauthenticated_access only: %i\[ new create \]/,
+                /require_unauthenticated_access only: %i\[ new create \]/,
                 /def destroy/
     assert_file "app/views/registrations/new.html.erb", /form_with url: registration_path/
     assert_file "app/views/registrations/edit.html.erb", /method: :patch/

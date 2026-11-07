@@ -29,6 +29,9 @@ en:
       subject: Confirm your email address
 <% end -%>
   flash:
+    authentication:
+      alert:
+        already_signed_in: You are already signed in.
 <% if confirmable? -%>
     confirmations:
       create:
@@ -135,6 +138,8 @@ en:
 <% if confirmable? -%>
           unconfirmed: You must confirm your email address before signing in.
 <% end -%>
+      destroy:
+        notice: You have been signed out.
 <% if lockable? -%>
     unlocks:
       create:

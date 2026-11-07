@@ -133,11 +133,37 @@ module RailsAuthentication
         inject_into_file "app/models/user.rb", "\n", after: /(?:  include \w+Concern\n)+/, force: true
       end
 
+      # User.available / User.unavailable: whether a user can sign in, composed from the scopes of
+      # whichever of Confirmable, Lockable, and Invitable are enabled. Placed, as a block of its
+      # own, after the base generator's `has_many :sessions` line.
+      def add_user_scopes
+        return if available_user_scope_chain.empty?
+
+        scopes = [
+          "scope :available, -> { #{available_user_scope_chain.join('.')} }",
+          "scope :unavailable, -> { where.not(id: available) }"
+        ]
+        inject_into_file "app/models/user.rb", "\n#{scopes.map { |line| "  #{line}\n" }.join}",
+                         after: /^  has_many :sessions, dependent: :destroy\n/, force: true
+      end
+
+      # The instance-level counterparts of User.available / User.unavailable, from the same
+      # enabled features, placed after the base generator's `normalizes :email_address` line.
+      # active_for_authentication? is Devise's name for the same check.
+      def add_user_availability_predicates
+        return if availability_checks.empty?
+
+        inject_into_file "app/models/user.rb", "\n#{user_availability_predicates}",
+                         after: /^  normalizes :email_address, .*\n/, force: true
+      end
+
       # Confirmable, Rememberable, Trackable, Timeoutable, and Lockable all hook into the
       # sign-in flow, so the base generator's session files are replaced with versions
       # rendered from the enabled feature set. Overwriting is safe: the base copies were
-      # written moments ago by this same run.
+      # written moments ago by this same run. The Session model carries the expiry rules
+      # (Timeoutable's inactivity timeout, Rememberable's REMEMBERED_TIMEOUT_IN cap).
       def customize_session_layer
+        template "app/models/session.rb", force: true
         template "app/controllers/sessions_controller.rb", force: true
         template "app/controllers/concerns/authentication.rb", force: true
         template "app/views/sessions/new.html.erb", force: true
@@ -174,6 +200,32 @@ module RailsAuthentication
 
         def passkey?
           options[:passkey]
+        end
+
+        # [available-when check, unavailable-when check] per enabled feature, matching the scopes.
+        def availability_checks
+          [
+            (["!locked?", "locked?"] if lockable?),
+            (["confirmed?", "!confirmed?"] if confirmable?),
+            (["!invitation_pending?", "invitation_pending?"] if invitable?)
+          ].compact
+        end
+
+        def user_availability_predicates
+          available = availability_checks.map(&:first).join(" &&\n      ")
+          unavailable = availability_checks.map(&:last).join(" ||\n      ")
+
+          "  def available?\n    #{available}\n  end\n  alias active_for_authentication? available?\n\n" \
+            "  def unavailable?\n    #{unavailable}\n  end\n"
+        end
+
+        # Mirrors the sign-in checks: confirmed, not currently locked, no invitation outstanding.
+        def available_user_scope_chain
+          [
+            ("confirmed" if confirmable?),
+            ("not_locked" if lockable?),
+            ("not_pending" if invitable?)
+          ].compact
         end
 
         def include_concern_in_user(concern)

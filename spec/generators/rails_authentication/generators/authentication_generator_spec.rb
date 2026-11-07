@@ -27,7 +27,6 @@ RSpec.describe RailsAuthentication::Generators::AuthenticationGenerator, type: :
                 /include ValidatableConcern/,
                 /include RecoverableConcern/,
                 /include ConfirmableConcern/,
-                /include RememberableConcern/,
                 /include TrackableConcern/,
                 /include TimeoutableConcern/,
                 /include LockableConcern/,
@@ -104,6 +103,130 @@ RSpec.describe RailsAuthentication::Generators::AuthenticationGenerator, type: :
     assert_no_file "app/controllers/invitations_controller.rb"
   end
 
+  it "declares access with allow/require_unauthenticated_access and require_authenticated_access" do
+    run_generator
+
+    assert_file "app/controllers/concerns/authentication.rb" do |concern|
+      expect(concern).to include(<<~RUBY.indent(4))
+        def allow_unauthenticated_access(**options)
+          skip_before_action :require_authentication, **options
+        end
+      RUBY
+      expect(concern).to include(<<~RUBY.indent(4))
+        def require_unauthenticated_access(**options)
+          allow_unauthenticated_access(**options)
+          before_action :redirect_signed_in_user, **options
+        end
+      RUBY
+      expect(concern).to include(<<~RUBY.indent(4))
+        def require_authenticated_access(**options)
+          before_action :enforce_authentication, **options
+        end
+      RUBY
+    end
+  end
+
+  it "redirects signed-in users to the default, and signed-out page visits back after sign-in" do
+    run_generator
+
+    already_signed_in = 't("flash.authentication.alert.already_signed_in")'
+    assert_file "app/controllers/concerns/authentication.rb" do |concern|
+      expect(concern).to include("return unless authenticated?")
+      expect(concern).to include("redirect_to default_after_authentication_url, alert: #{already_signed_in}")
+      expect(concern).to include("render json: { error: #{already_signed_in} }, status: :forbidden")
+      expect(concern).to include("if request.get? && request.format.html? && !request.xhr?")
+      expect(concern).to include("session.delete(:return_to_after_authenticating) || default_after_authentication_url")
+      expect(concern).to match(/def default_after_authentication_url\n    root_url\n  end/)
+    end
+  end
+
+  it "makes every signed-out flow signed-out only" do
+    run_generator %w[--magic-link --ott --passkey]
+
+    {
+      "sessions" => "only: %i[ new create ]",
+      "registrations" => "only: %i[ new create ]",
+      "invitations" => "only: %i[ edit update ]",
+      "confirmations" => "except: :show",
+      "passwords" => nil, "unlocks" => nil, "magic_links" => nil, "otts" => nil, "passkey_sessions" => nil
+    }.each do |controller, options|
+      assert_file "app/controllers/#{controller}_controller.rb",
+                  /^  require_unauthenticated_access#{Regexp.escape(options ? " #{options}" : "")}$/ do |source|
+        expected_allows = controller == "confirmations" ? ["  allow_unauthenticated_access only: :show"] : []
+        expect(source.scan(/^  allow_unauthenticated_access.*$/)).to eq(expected_allows)
+      end
+    end
+  end
+
+  describe "User.available / User.unavailable" do
+    it "chains every enabled sign-in check, in its own block after has_many :sessions" do
+      run_generator
+
+      assert_file "app/models/user.rb" do |user|
+        expect(user).to include(<<~RUBY.indent(2).chomp)
+          has_secure_password
+          has_many :sessions, dependent: :destroy
+
+          scope :available, -> { confirmed.not_locked.not_pending }
+          scope :unavailable, -> { where.not(id: available) }
+
+          normalizes :email_address
+        RUBY
+      end
+    end
+
+    it "adds the matching instance predicates after normalizes" do
+      run_generator
+
+      assert_file "app/models/user.rb" do |user|
+        expect(user).to include(<<~RUBY.indent(2))
+          normalizes :email_address, with: ->(e) { e.strip.downcase }
+
+          def available?
+            !locked? &&
+              confirmed? &&
+              !invitation_pending?
+          end
+          alias active_for_authentication? available?
+
+          def unavailable?
+            locked? ||
+              !confirmed? ||
+              invitation_pending?
+          end
+        RUBY
+      end
+    end
+
+    it "leaves out the checks of skipped features" do
+      run_generator %w[--skip-lockable]
+
+      assert_file "app/models/user.rb", /scope :available, -> \{ confirmed\.not_pending \}/ do |user|
+        expect(user).to include("    confirmed? &&\n      !invitation_pending?\n")
+        expect(user).to include("    !confirmed? ||\n      invitation_pending?\n")
+        expect(user).not_to include("locked?")
+      end
+    end
+
+    it "isn't generated when Confirmable, Lockable, and Invitable are all skipped" do
+      run_generator %w[--skip-confirmable --skip-lockable --skip-invitable]
+
+      assert_file "app/models/user.rb" do |user|
+        expect(user).not_to include("scope :available")
+        expect(user).not_to include("scope :unavailable")
+        expect(user).not_to include("def available?")
+        expect(user).not_to include("def unavailable?")
+      end
+    end
+  end
+
+  it "confirms sign-out with a flash notice" do
+    run_generator
+
+    assert_file "app/controllers/sessions_controller.rb",
+                /redirect_to new_session_path, status: :see_other, notice: t\("flash\.sessions\.destroy\.notice"\)/
+  end
+
   describe "the session layer with every feature skipped" do
     before do
       run_generator(RailsAuthentication::Generators::AuthenticationGenerator::FEATURES.map { |f| "--skip-#{f}" })
@@ -119,9 +242,11 @@ RSpec.describe RailsAuthentication::Generators::AuthenticationGenerator, type: :
 
       assert_file "app/controllers/concerns/authentication.rb",
                   /cookies\.signed\.permanent\[:session_id\]/ do |concern|
-        expect(concern).not_to include("timedout?")
+        expect(concern).not_to include("expired?")
         expect(concern).not_to include("forget_me!")
       end
+
+      assert_file "app/models/session.rb", /class Session < ApplicationRecord\n  belongs_to :user\nend/
 
       assert_file "app/views/sessions/new.html.erb" do |view|
         expect(view).not_to include("remember_me")

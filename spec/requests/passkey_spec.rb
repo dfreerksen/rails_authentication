@@ -56,6 +56,21 @@ RSpec.describe "Passkey" do
     expect(response.body).to include("Home")
   end
 
+  it "signs in for the browser session only, never remembered" do
+    user = create_user
+    register_passkey_for(user)
+
+    get "/session/new"
+    options = extract_webauthn_options(response.body, "@webauthn_credential_options")
+    post "/passkey_session",
+         params: fake_client.get(challenge: options["challenge"]).to_json,
+         headers: { "Content-Type" => "application/json" }
+
+    expect(response).to have_http_status(:success)
+    expect(user.sessions.sole).not_to be_remembered
+    expect(session_cookie_header).not_to match(/expires=/i)
+  end
+
   it "rejects an unrecognized passkey" do
     other_client = WebAuthn::FakeClient.new("http://www.example.com")
     # Give the fake authenticator a credential to sign with — it's never registered with
@@ -97,5 +112,9 @@ RSpec.describe "Passkey" do
 
   def follow_redirect_to(path)
     get path
+  end
+
+  def session_cookie_header
+    Array(response.headers["set-cookie"]).join("\n")[/session_id=[^\n]*/] || ""
   end
 end

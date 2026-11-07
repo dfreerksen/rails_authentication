@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "fileutils"
+require "active_support/core_ext/string/indent" # specs compare indented heredocs
 require "rails/generators"
 require "action_mailer/railtie" # so the generator's `defined?(ActionMailer::Railtie)` guards are exercised
 require "minitest/assertions"

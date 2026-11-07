@@ -7,6 +7,11 @@ module InvitableConcern
 
   included do
     belongs_to :invited_by, polymorphic: true, optional: true
+
+    # Match invitation_pending?: a user who signed up without an invitation is neither.
+    scope :accepted, -> { where.not(invitation_accepted_at: nil) }
+    scope :pending, -> { where.not(invitation_token: nil).where(invitation_accepted_at: nil) }
+    scope :not_pending, -> { where(invitation_token: nil).or(where.not(invitation_accepted_at: nil)) }
   end
 
   class_methods do

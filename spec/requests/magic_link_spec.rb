@@ -26,6 +26,16 @@ RSpec.describe "MagicLink" do
     expect(response).to redirect_to("/magic_links/new")
   end
 
+  it "signs in for the browser session only, never remembered" do
+    user = create_user
+    user.generate_magic_link_token!
+
+    get "/magic_links/#{user.reload.magic_link_token}"
+
+    expect(user.sessions.sole).not_to be_remembered
+    expect(session_cookie_header).not_to match(/expires=/i)
+  end
+
   it "does not email unknown addresses but shows the same notice" do
     post "/magic_links", params: { email_address: "nobody@example.com" }
 
@@ -68,5 +78,9 @@ RSpec.describe "MagicLink" do
     expect(response).to redirect_to("/session/new")
     follow_redirect!
     expect(response.body).to include("Your account is locked")
+  end
+
+  def session_cookie_header
+    Array(response.headers["set-cookie"]).join("\n")[/session_id=[^\n]*/] || ""
   end
 end

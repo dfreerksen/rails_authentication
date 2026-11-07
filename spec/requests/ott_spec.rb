@@ -25,6 +25,26 @@ RSpec.describe "Ott" do
     expect(response.body).to include("Home")
   end
 
+  it "remembers this browser only when remember me is checked" do
+    user = create_user
+
+    post "/ott", params: { email_address: user.email_address }
+    patch "/ott", params: { code: user.reload.ott_code, remember_me: "1" }
+
+    expect(user.sessions.sole).to be_remembered
+    expect(session_cookie_header).to match(/expires=/i)
+  end
+
+  it "signs in for the browser session only when remember me is unchecked" do
+    user = create_user
+
+    post "/ott", params: { email_address: user.email_address }
+    patch "/ott", params: { code: user.reload.ott_code }
+
+    expect(user.sessions.sole).not_to be_remembered
+    expect(session_cookie_header).not_to match(/expires=/i)
+  end
+
   it "does not email unknown addresses but shows the same notice" do
     post "/ott", params: { email_address: "nobody@example.com" }
 
@@ -127,5 +147,9 @@ RSpec.describe "Ott" do
     get "/session/new", params: { with_password: 1 }
     expect(response.body).to include('type="password"')
     expect(response.body).to include("Sign in with a one-time code instead")
+  end
+
+  def session_cookie_header
+    Array(response.headers["set-cookie"]).join("\n")[/session_id=[^\n]*/] || ""
   end
 end
