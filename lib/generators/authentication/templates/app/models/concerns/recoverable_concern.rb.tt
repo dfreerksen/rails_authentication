@@ -5,6 +5,12 @@ module RecoverableConcern
 
   RESET_PASSWORD_TOKEN_EXPIRES_IN = 4.hours
 
+  included do
+    # has_secure_password treats a blank password as "unchanged", so without this a blank reset
+    # form would "succeed" (token cleared, sessions ended) while keeping the old password.
+    validates :password, presence: true, on: :password_reset
+  end
+
   class_methods do
     def find_by_valid_reset_password_token(token)
       return if token.blank?

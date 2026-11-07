@@ -57,4 +57,12 @@ RSpec.describe RailsAuthentication::Generators::Features::Validatable, type: :ge
       expect(user).not_to include("ValidatableConcern")
     end
   end
+
+  it "leaves blank-password checks to the flows that set a password (Recoverable, Invitable)" do
+    run_generator
+
+    assert_file "app/models/concerns/validatable_concern.rb" do |concern|
+      expect(concern).not_to include("presence: true, on:")
+    end
+  end
 end

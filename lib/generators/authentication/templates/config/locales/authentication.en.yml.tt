@@ -108,6 +108,7 @@ en:
       update:
         alert:
           invalid_token: Password reset link is invalid or has expired.
+          password_blank: Enter a new password.
           password_mismatch: Passwords did not match.
         notice: Password has been reset.
 <% end -%>

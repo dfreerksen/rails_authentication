@@ -75,4 +75,12 @@ RSpec.describe RailsAuthentication::Generators::Features::Invitable, type: :gene
       )
     end
   end
+
+  it "rejects a blank password on acceptance instead of keeping the temporary one" do
+    run_generator
+
+    assert_file "app/models/concerns/invitable_concern.rb",
+                /validates :password, presence: true, on: :invitation_acceptance/,
+                /save\(context: :invitation_acceptance\)/
+  end
 end

@@ -166,6 +166,12 @@ generated views, not a number: `ValidatableConcern::PASSWORD_LENGTH.max` with Va
 `ActiveModel::SecurePassword::MAX_PASSWORD_LENGTH_ALLOWED`. New-password fields use it; the sign-in
 field always uses the Rails constant so existing passwords still fit if the policy is lowered.
 
+`has_secure_password` treats a blank password as "unchanged" (no error, old digest kept), so each
+flow that *sets* a password validates presence in its own context: Recoverable's
+`on: :password_reset` (`PasswordsController#update` saves with that context) and Invitable's
+`on: :invitation_acceptance` (`accept_invitation!`). Separate contexts, not a shared one, so enabling
+both never doubles the error. Registration editing deliberately keeps ignoring a blank password.
+
 Invitable's `User.invite!(attributes, invited_by: nil)` takes an attributes hash (not a bare email
 address) so host apps can require extra fields; `InvitationsController#create` passes
 `invitation_params` (`params.permit(:email_address)`). The README's "Inviting users" section

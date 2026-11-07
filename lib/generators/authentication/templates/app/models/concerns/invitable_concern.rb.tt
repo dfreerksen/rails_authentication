@@ -8,6 +8,10 @@ module InvitableConcern
   included do
     belongs_to :invited_by, polymorphic: true, optional: true
 
+    # has_secure_password treats a blank password as "unchanged", so without this a blank
+    # acceptance would accept the invitation while keeping the generated temporary password.
+    validates :password, presence: true, on: :invitation_acceptance
+
     # Match invitation_pending?: a user who signed up without an invitation is neither.
     scope :accepted, -> { where.not(invitation_accepted_at: nil) }
     scope :pending, -> { where.not(invitation_token: nil).where(invitation_accepted_at: nil) }
@@ -89,6 +93,6 @@ module InvitableConcern
 <% if confirmable? -%>
     self.confirmed_at ||= Time.current # accepting the invite proves the email address
 <% end -%>
-    save
+    save(context: :invitation_acceptance)
   end
 end

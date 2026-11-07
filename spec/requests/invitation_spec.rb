@@ -36,6 +36,18 @@ RSpec.describe "Invitations (invitable)" do
     expect(response).to have_http_status(:ok)
   end
 
+  it "rejects a blank password, leaving the invitation pending and the invitee signed out" do
+    invitee = User.invite!({ email_address: "invitee@example.com" })
+    token = invitee.invitation_token
+
+    patch "/invitations/#{token}", params: { password: "", password_confirmation: "" }
+
+    expect(response).to redirect_to("/invitations/#{token}/edit")
+    expect(flash[:alert]).to include("Password can't be blank")
+    expect(invitee.reload).to be_invitation_pending
+    expect(invitee.sessions.count).to eq(0)
+  end
+
   it "requires authentication to send invitations" do
     post "/invitations", params: { email_address: "invitee@example.com" }
 

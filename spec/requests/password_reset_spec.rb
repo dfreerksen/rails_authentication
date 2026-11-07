@@ -51,6 +51,21 @@ RSpec.describe "Password reset (recoverable)" do
     expect(other_device.get("/")).to eq(302)
   end
 
+  it "rejects a blank new password, leaving the token, sessions, and password unchanged" do
+    user = create_user
+    signed_in_device(user)
+    user.generate_reset_password_token!
+    token = user.reload.reset_password_token
+
+    patch "/passwords/#{token}", params: { password: "", password_confirmation: "" }
+
+    expect(response).to redirect_to("/passwords/#{token}/edit")
+    expect(flash[:alert]).to eq("Enter a new password.")
+    expect(user.reload.reset_password_token).to eq(token)
+    expect(user.sessions.count).to eq(1)
+    expect(user.authenticate(RequestHelpers::PASSWORD)).to be_truthy
+  end
+
   it "rejects expired reset tokens" do
     user = create_user
     user.generate_reset_password_token!

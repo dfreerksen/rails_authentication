@@ -68,4 +68,14 @@ RSpec.describe RailsAuthentication::Generators::Features::Recoverable, type: :ge
     assert_no_file "app/views/passwords/new.html.erb"
     assert_no_file "app/views/passwords/edit.html.erb"
   end
+
+  it "rejects a blank new password instead of letting has_secure_password ignore it" do
+    run_generator
+
+    assert_file "app/models/concerns/recoverable_concern.rb", /validates :password, presence: true, on: :password_reset/
+    assert_file "app/controllers/passwords_controller.rb",
+                /if @user\.save\(context: :password_reset\)/,
+                /elsif @user\.errors\.of_kind\?\(:password, :blank\)/,
+                /t\("flash\.passwords\.update\.alert\.password_blank"\)/
+  end
 end
