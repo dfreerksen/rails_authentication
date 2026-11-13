@@ -3,6 +3,6 @@
 class OttsMailer < ApplicationMailer
   def ott(user)
     @user = user
-    mail subject: t('otts_mailer.ott.subject'), to: user.email_address
+    mail subject: t('otts_mailer.ott.subject'), to: user[User.authentication_email_column_name]
   end
 end

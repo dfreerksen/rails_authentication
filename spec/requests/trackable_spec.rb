@@ -26,7 +26,7 @@ RSpec.describe "Authentication tracking (trackable)" do
 
   it "records attempts against unknown email addresses without a user" do
     expect do
-      post "/session", params: { email_address: "ghost@example.com", password: "wrong" }
+      post "/session", params: { email: "ghost@example.com", password: "wrong" }
     end.to change(UserAuth.failed, :count).by(1)
 
     expect(UserAuth.failed.last.user).to be_nil

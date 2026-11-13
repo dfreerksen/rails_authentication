@@ -4,7 +4,7 @@
 <% if ott? -%>
 <%% if params[:with_password].blank? %>
 <%%= form_with url: ott_path do |form| %>
-  <%%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: t('.ott.form.input.email.placeholder'), value: params[:email_address] %><br>
+  <%%= form.email_field authentication_email_column_name, required: true, autofocus: true, autocomplete: "username", placeholder: t('.ott.form.input.email.placeholder'), value: params[authentication_email_column_name] %><br>
   <%%= form.submit t('.ott.form.button.submit') %>
 <%% end %>
 <br>
@@ -13,7 +13,7 @@
 <%% else %>
 <% end -%>
 <%%= form_with url: session_path do |form| %>
-  <%%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: t('.session.form.input.email.placeholder'), value: params[:email_address] %><br>
+  <%%= form.email_field authentication_email_column_name, required: true, autofocus: true, autocomplete: "username", placeholder: t('.session.form.input.email.placeholder'), value: params[authentication_email_column_name] %><br>
   <%%= form.password_field :password, required: true, autocomplete: "current-password", placeholder: t('.session.form.input.password.placeholder'), maxlength: ActiveModel::SecurePassword::MAX_PASSWORD_LENGTH_ALLOWED %><br>
 <% if rememberable? -%>
   <%%= form.check_box :remember_me %> <%%= form.label :remember_me, t('.session.form.input.remember.label') %><br>

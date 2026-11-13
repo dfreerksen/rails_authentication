@@ -7,8 +7,8 @@ module ConfirmableConcern
 
   included do
 <% if reconfirmable? -%>
-    before_update :postpone_email_address_change, if: :postponing_email_address_change?
-    after_update_commit :deliver_reconfirmation_instructions, if: -> { saved_change_to_unconfirmed_email? && unconfirmed_email.present? }
+    before_update :postpone_email_change, if: :postponing_email_change?
+    after_update_commit :deliver_reconfirmation_instructions, if: -> { saved_change_to_<%= unconfirmed_email_attribute %>? && <%= unconfirmed_email_attribute %>.present? }
 
 <% end -%>
     scope :confirmed, -> { where.not(confirmed_at: nil) }
@@ -31,8 +31,8 @@ module ConfirmableConcern
   def confirm!
 <% if reconfirmable? -%>
     @confirming = true
-    self.email_address = unconfirmed_email if unconfirmed_email.present?
-    self.unconfirmed_email = nil
+    self[self.class.authentication_email_column_name] = <%= unconfirmed_email_attribute %> if <%= unconfirmed_email_attribute %>.present?
+    self.<%= unconfirmed_email_attribute %> = nil
     self.confirmed_at = Time.current
     self.confirmation_token = nil
     self.confirmation_sent_at = nil
@@ -62,13 +62,13 @@ module ConfirmableConcern
 
   private
 
-  def postponing_email_address_change?
-    !@confirming && email_address_changed? && confirmed?
+  def postponing_email_change?
+    !@confirming && attribute_changed?(self.class.authentication_email_column_name) && confirmed?
   end
 
-  def postpone_email_address_change
-    self.unconfirmed_email = email_address
-    self.email_address = email_address_in_database
+  def postpone_email_change
+    self.<%= unconfirmed_email_attribute %> = self[self.class.authentication_email_column_name]
+    self[self.class.authentication_email_column_name] = attribute_in_database(self.class.authentication_email_column_name)
     self.confirmation_token = generate_confirmable_token
     self.confirmation_sent_at = Time.current
   end

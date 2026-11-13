@@ -63,6 +63,29 @@ module GeneratorHelpers
       end
     RUBY
 
+    # The base generator's other files naming email_address, which --email-attribute renames.
+    write_destination_file "db/migrate/20250101000000_create_users.rb", <<~RUBY
+      class CreateUsers < ActiveRecord::Migration[8.0]
+        def change
+          create_table :users do |t|
+            t.string :email_address, null: false
+            t.string :password_digest, null: false
+
+            t.timestamps
+          end
+          add_index :users, :email_address, unique: true
+        end
+      end
+    RUBY
+
+    write_destination_file "test/fixtures/users.yml", <<~YAML
+      <% password_digest = BCrypt::Password.create("password") %>
+
+      one:
+        email_address: one@example.com
+        password_digest: <%= password_digest %>
+    YAML
+
     write_destination_file "app/controllers/application_controller.rb", <<~RUBY
       class ApplicationController < ActionController::Base
       end

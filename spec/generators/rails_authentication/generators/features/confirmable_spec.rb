@@ -34,7 +34,7 @@ RSpec.describe RailsAuthentication::Generators::Features::Confirmable, type: :ge
       expect(migration).not_to include("unconfirmed_email")
     end
     assert_file "app/models/concerns/confirmable_concern.rb" do |concern|
-      expect(concern).not_to include("postpone_email_address_change")
+      expect(concern).not_to include("postpone_email_change")
     end
   end
 
@@ -43,9 +43,11 @@ RSpec.describe RailsAuthentication::Generators::Features::Confirmable, type: :ge
 
     assert_migration "db/migrate/add_confirmable_to_users.rb", /add_column :users, :unconfirmed_email, :string/
     assert_file "app/models/concerns/confirmable_concern.rb",
-                /before_update :postpone_email_address_change/,
-                /self\.email_address = unconfirmed_email if unconfirmed_email\.present\?/
-    assert_file "app/mailers/confirmations_mailer.rb", /user\.unconfirmed_email\.presence \|\| user\.email_address/
+                /before_update :postpone_email_change, if: :postponing_email_change\?/,
+                /self\[self\.class\.authentication_email_column_name\]\ =
+                 \ unconfirmed_email\ if\ unconfirmed_email\.present\?/x
+    assert_file "app/mailers/confirmations_mailer.rb",
+                /user\.unconfirmed_email\.presence \|\| user\[User\.authentication_email_column_name\]/
   end
 
   it "is skipped with --skip-confirmable" do

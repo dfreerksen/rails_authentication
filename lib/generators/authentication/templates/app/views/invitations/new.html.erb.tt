@@ -4,6 +4,6 @@
 <%%= tag.div(flash[:notice], style: "color:green") if flash[:notice] %>
 
 <%%= form_with url: invitations_path do |form| %>
-  <%%= form.email_field :email_address, required: true, autofocus: true, placeholder: t('.form.input.email.placeholder') %><br>
+  <%%= form.email_field authentication_email_column_name, required: true, autofocus: true, placeholder: t('.form.input.email.placeholder') %><br>
   <%%= form.submit t('.form.button.submit') %>
 <%% end %>

@@ -12,11 +12,11 @@ class SessionsController < ApplicationController
   end
 
   def create
-    user = User.authenticate_by(params.permit(:email_address, :password))
+    user = User.authenticate_by(params.permit(authentication_email_column_name, :password))
 
     if user.nil?
 <% if lockable? || trackable? -%>
-      account = User.find_by(email_address: params[:email_address])
+      account = User.find_by(authentication_email_column_name => params[authentication_email_column_name])
 <% end -%>
 <% if lockable? -%>
       account&.register_failed_attempt!

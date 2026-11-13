@@ -46,7 +46,7 @@ en:
 <% if invitable? -%>
     invitations:
       create:
-        notice: Invitation sent to %{email_address}.
+        notice: Invitation sent to %{email}.
       edit:
         alert:
           invalid_token: Invitation link is invalid or has expired.

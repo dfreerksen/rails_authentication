@@ -2,6 +2,7 @@
 
 require "rails/generators"
 require "rails/generators/active_record"
+require "active_support/core_ext/string/indent"
 require_relative "features/confirmable"
 require_relative "features/recoverable"
 require_relative "features/registerable"
@@ -55,6 +56,11 @@ module RailsAuthentication
         class_option :"skip_#{feature}", type: :boolean, default: false, desc: "Skip #{feature}"
       end
 
+      # Rails' base generator calls the column email_address; this renames it everywhere: in
+      # the base generator's files (by word-boundary substitution) and in this gem's templates.
+      class_option :email_attribute, type: :string, default: "email_address",
+                                     desc: "Name of the users table's email column"
+
       class_option :reconfirmable, type: :boolean, default: false,
                                    desc: "Confirmable: postpone email address changes until reconfirmed (opt-in)"
 
@@ -73,9 +79,27 @@ module RailsAuthentication
       class_option :passkey, type: :boolean, default: false,
                              desc: "Add WebAuthn passkey sign-in (opt-in; requires the webauthn gem)"
 
+      # Checked before anything is written: the value becomes a column and method names.
+      def validate_email_attribute
+        return if email_attribute.match?(/\A[a-z_][a-z0-9_]*\z/)
+
+        raise Thor::Error, "--email-attribute must be a lowercase Ruby identifier, got #{email_attribute.inspect}"
+      end
+
       def install_base_authentication
         say "Running Rails' built-in authentication generator", :green
         Rails::Generators.invoke("rails:authentication", [], behavior: behavior, destination_root: destination_root)
+      end
+
+      # Renames the base generator's email_address in the files it wrote (model, create_users
+      # migration, fixtures, tests, and the controllers/views/mailer that later steps may or may
+      # not replace). Runs before any feature step, so injections see the renamed attribute.
+      def rename_email_attribute
+        return if email_attribute == "email_address"
+
+        base_files_with_email_attribute.each do |path|
+          gsub_file path, /\bemail_address\b/, email_attribute
+        end
       end
 
       def install_validatable
@@ -126,6 +150,20 @@ module RailsAuthentication
         generate_passkey if passkey?
       end
 
+      # User.authentication_email_column_name is the one place generated code reads the email column's
+      # name from. Injected after the feature steps so it lands above their concern includes:
+      # Validatable's `validates` runs at include time and needs it. normalizes uses it too.
+      def add_authentication_email_column_name
+        inject_into_class "app/models/user.rb", "User", <<~RUBY.indent(2)
+          # The users table's email column, read by every authentication flow. Defined before
+          # the concerns, which use it when they're included.
+          def self.authentication_email_column_name = :#{email_attribute}
+
+        RUBY
+        gsub_file "app/models/user.rb", /^  normalizes :#{email_attribute},/,
+                  "  normalizes authentication_email_column_name,"
+      end
+
       # Runs after every feature install so the blank line separates the concern
       # includes (if any) from the rest of the class body, no matter which features
       # are enabled.
@@ -148,13 +186,13 @@ module RailsAuthentication
       end
 
       # The instance-level counterparts of User.available / User.unavailable, from the same
-      # enabled features, placed after the base generator's `normalizes :email_address` line.
+      # enabled features, placed after the base generator's `normalizes` line.
       # active_for_authentication? is Devise's name for the same check.
       def add_user_availability_predicates
         return if availability_checks.empty?
 
         inject_into_file "app/models/user.rb", "\n#{user_availability_predicates}",
-                         after: /^  normalizes :email_address, .*\n/, force: true
+                         after: /^  normalizes authentication_email_column_name, .*\n/, force: true
       end
 
       # Confirmable, Rememberable, Trackable, Timeoutable, and Lockable all hook into the
@@ -184,6 +222,33 @@ module RailsAuthentication
           return "ValidatableConcern::PASSWORD_LENGTH.max" if validatable?
 
           "ActiveModel::SecurePassword::MAX_PASSWORD_LENGTH_ALLOWED"
+        end
+
+        def email_attribute
+          options[:email_attribute]
+        end
+
+        # Reconfirmable's pending-address column. A trailing _address is dropped, so the default
+        # email_address (like Devise's email) pairs with unconfirmed_email.
+        def unconfirmed_email_attribute
+          "unconfirmed_#{email_attribute.delete_suffix('_address')}"
+        end
+
+        # The base generator's files that name email_address, relative to destination_root.
+        def base_files_with_email_attribute
+          paths = %w[
+            app/models/user.rb
+            app/controllers/sessions_controller.rb
+            app/controllers/passwords_controller.rb
+            app/mailers/passwords_mailer.rb
+            app/views/sessions/new.html.erb
+            app/views/passwords/new.html.erb
+            test/fixtures/users.yml
+            test/models/user_test.rb
+            test/controllers/sessions_controller_test.rb
+            test/controllers/passwords_controller_test.rb
+          ] + Dir.glob("db/migrate/*_create_users.rb", base: destination_root)
+          paths.select { |path| File.exist?(File.join(destination_root, path)) }
         end
 
         def reconfirmable?

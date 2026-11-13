@@ -3,6 +3,6 @@
 class InvitationsMailer < ApplicationMailer
   def invitation_instructions(user)
     @user = user
-    mail subject: t('invitations_mailer.invitation_instructions.subject'), to: user.email_address
+    mail subject: t('invitations_mailer.invitation_instructions.subject'), to: user[User.authentication_email_column_name]
   end
 end

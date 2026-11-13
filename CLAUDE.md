@@ -101,12 +101,14 @@ loads both (it broke the request specs before the rename).
 ### Generator flow
 
 One generator class; Thor runs its public methods in definition order:
+`validate_email_attribute` (rejects a bad `--email-attribute` before anything is written) →
 `install_base_authentication` (invokes Rails core's `rails:authentication` in-process — User/
 Session/Current, SessionsController, PasswordsController, Authentication concern, migrations,
-routes) → one `install_<feature>` step per feature (each early-returns on its skip flag — or, for
-MagicLink/Ott, on the absence of the opt-in flag — and delegates to a module in
-`lib/generators/authentication/features/`) → `format_user_model` → `add_user_scopes` →
-`customize_session_layer`. MagicLink and Ott are
+routes) → `rename_email_attribute` → one `install_<feature>` step per feature (each early-returns
+on its skip flag — or, for MagicLink/Ott, on the absence of the opt-in flag — and delegates to a
+module in `lib/generators/authentication/features/`) → `add_authentication_email_column_name` →
+`format_user_model` → `add_user_scopes` → `add_user_availability_predicates` →
+`customize_session_layer` → `create_locale_file`. MagicLink and Ott are
 deliberately NOT in `FEATURES` (that constant drives the `--skip-<feature>` options and
 `<feature>?` query methods); their `--magic-link`/`--ott` options and `magic_link?`/`ott?` helpers
 are declared separately.
@@ -161,6 +163,24 @@ No user-facing English belongs in templates; every string goes through the local
 - Trackable's `failure_reason` codes and log messages stay in English: they're data and developer
   output, not UI.
 
+`--email-attribute` (default `email_address`) names the email column, but generated code never
+spells it out: it reads `User.authentication_email_column_name`, injected by
+`add_authentication_email_column_name` as the first thing in `user.rb` (above the concern
+includes, because Validatable's `validates` runs at include time; `normalizes` uses it too).
+Controllers and views use the `Authentication` concern's `authentication_email_column_name` (a
+`helper_method` delegating to User); models and mailers call the User method
+(`self[self.class.authentication_email_column_name]`, `attribute_changed?(…)`,
+`user[User.authentication_email_column_name]`). Keep it that way in new templates: no
+`<%= email_attribute %>` outside the column definitions. Only the columns themselves are
+generation-time: Reconfirmable's `unconfirmed_email_attribute` column, and the base generator's
+`create_users` migration, fixtures, and tests, plus the passwords controller/view/mailer that
+survive `--skip-recoverable`. `rename_email_attribute` renames those base files with a
+word-boundary `gsub_file` right after the base invocation; a new base file that names
+`email_address` belongs in `base_files_with_email_attribute`. Names that merely mention email (the
+`:ott_email` session key, the `%{email}` interpolation, `postpone_email_change`) are fixed. The
+generator spec fails if `email_address` appears anywhere in the output under
+`--email-attribute=email`.
+
 `password_maxlength` (in the generator's `no_commands` block) returns Ruby *source* for the
 generated views, not a number: `ValidatableConcern::PASSWORD_LENGTH.max` with Validatable, otherwise
 `ActiveModel::SecurePassword::MAX_PASSWORD_LENGTH_ALLOWED`. New-password fields use it; the sign-in
@@ -174,7 +194,7 @@ both never doubles the error. Registration editing deliberately keeps ignoring a
 
 Invitable's `User.invite!(attributes, invited_by: nil)` takes an attributes hash (not a bare email
 address) so host apps can require extra fields; `InvitationsController#create` passes
-`invitation_params` (`params.permit(:email_address)`). The README's "Inviting users" section
+`invitation_params` (`params.permit(authentication_email_column_name)`). The README's "Inviting users" section
 documents the contract — keep it in sync with the concern.
 
 Access is declared with three `Authentication` class methods. Sign-in is required by default
@@ -197,7 +217,7 @@ redirect to `after_authentication_url`, not a hard-coded path.
 `add_user_scopes` injects `User.available` / `User.unavailable` after `has_many :sessions`,
 chaining the enabled features' scopes (`confirmed`, `not_locked`, `not_pending`; see
 `available_user_scope_chain`) so `available` matches exactly the users the sign-in flows let in. `add_user_availability_predicates`
-adds the instance versions after `normalizes :email_address` (`available?`, aliased
+adds the instance versions after `normalizes authentication_email_column_name` (`available?`, aliased
 `active_for_authentication?`, and `unavailable?`), built from the same features in `availability_checks`. Feature scopes must agree with
 their instance predicates — `locked`/`not_locked` honor `UNLOCK_IN` like `locked?`, and
 `pending`/`not_pending` require an invitation token like `invitation_pending?` (users who
@@ -216,7 +236,8 @@ is guarded by `defined?(ActionMailer::Railtie)`, evaluated in the host app's pro
 **Generator specs** (`spec/generators/`) assert on generated file contents.
 `spec/support/generator_helpers.rb` is a small stand-in for `Rails::Generators::TestCase` (whose
 `run_generator` injects args our generator doesn't declare): it seeds a destination with the
-base-generator files the feature steps inject into, stubs `Rails::Generators.invoke`, and mixes in
+base-generator files the feature steps inject into (plus the `create_users` migration and fixtures,
+so `--email-attribute`'s renaming is exercised), stubs `Rails::Generators.invoke`, and mixes in
 Rails' `assert_file`/`assert_migration`. Note `assert_file` with a String arg does exact
 whole-file comparison — use Regexps.
 
@@ -229,8 +250,9 @@ feature.
 **Request specs** (`spec/requests/`) exercise the generated code over HTTP against `spec/dummy`, a
 real Rails app **produced by the real generator** via `bin/prepare_dummy` (gitignored, never
 hand-edited, so it can't drift from the templates; the script passes `--magic-link --ott
---passkey` so the opt-in features are exercised too). The dummy boots against this gem's own
-Gemfile
+--passkey` so the opt-in features are exercised too, and `--email-attribute=email` so the request
+specs use `email`, never `email_address`; the script fails if `email_address` survives anywhere).
+The dummy boots against this gem's own Gemfile
 (`BUNDLE_GEMFILE` is exported by the script; that's why `bcrypt` is in the gem's Gemfile).
 `spec/rails_helper.rb` boots it and forces the inline ActiveJob adapter so mailer specs can assert
 on `ActionMailer::Base.deliveries`. If a template changes, rerun `rake dummy:prepare` before

@@ -30,7 +30,7 @@ RSpec.describe "Signed-out flows while already signed in" do
     user = User.sole
 
     expect do
-      post "/session", params: { email_address: user.email_address, password: RequestHelpers::PASSWORD }
+      post "/session", params: { email: user.email, password: RequestHelpers::PASSWORD }
     end.not_to change(Session, :count)
 
     expect(response).to redirect_to("/")

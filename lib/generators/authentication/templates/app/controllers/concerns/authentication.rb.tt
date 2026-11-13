@@ -5,7 +5,7 @@ module Authentication
 
   included do
     before_action :require_authentication
-    helper_method :authenticated?, :current_user
+    helper_method :authenticated?, :current_user, :authentication_email_column_name
   end
 
   # Every controller requires a signed-in user by default (the before_action above).
@@ -39,6 +39,11 @@ module Authentication
 
   def current_user
     Current.user
+  end
+
+  # The users table's email column, for params, lookups, and form fields. Defined on User.
+  def authentication_email_column_name
+    User.authentication_email_column_name
   end
 
   def require_authentication

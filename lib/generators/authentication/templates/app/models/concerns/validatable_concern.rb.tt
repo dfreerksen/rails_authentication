@@ -12,7 +12,7 @@ module ValidatableConcern
   PASSWORD_MINIMUM_COMPLEXITY = 2 # Minimum number of complexities to match to be valid
 
   included do
-    validates :email_address, presence: true,
+    validates authentication_email_column_name, presence: true,
       format: { with: EMAIL_ADDRESS_REGEXP },
       uniqueness: { case_sensitive: false }
     validates :password, length: { in: PASSWORD_LENGTH }, allow_nil: true

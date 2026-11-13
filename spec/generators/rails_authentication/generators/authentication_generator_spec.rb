@@ -44,6 +44,7 @@ RSpec.describe RailsAuthentication::Generators::AuthenticationGenerator, type: :
       combinations["--skip-#{feature}"] = ["--skip-#{feature}"]
     end
     %w[--magic-link --ott --passkey].each { |flag| combinations["only #{flag}"] = [*all_skipped, flag] }
+    combinations["--email-attribute=email"] = %w[--email-attribute=email --magic-link --ott --passkey --reconfirmable]
 
     combinations.each do |description, args|
       it "has exactly the translations the generated code uses with #{description}" do
@@ -170,7 +171,7 @@ RSpec.describe RailsAuthentication::Generators::AuthenticationGenerator, type: :
           scope :available, -> { confirmed.not_locked.not_pending }
           scope :unavailable, -> { where.not(id: available) }
 
-          normalizes :email_address
+          normalizes authentication_email_column_name
         RUBY
       end
     end
@@ -180,7 +181,7 @@ RSpec.describe RailsAuthentication::Generators::AuthenticationGenerator, type: :
 
       assert_file "app/models/user.rb" do |user|
         expect(user).to include(<<~RUBY.indent(2))
-          normalizes :email_address, with: ->(e) { e.strip.downcase }
+          normalizes authentication_email_column_name, with: ->(e) { e.strip.downcase }
 
           def available?
             !locked? &&
@@ -257,6 +258,108 @@ RSpec.describe RailsAuthentication::Generators::AuthenticationGenerator, type: :
       assert_file "app/models/user.rb" do |user|
         expect(user.scan(/include \w+Concern/)).to eq([])
       end
+    end
+  end
+
+  describe "--email-attribute" do
+    all_skipped = RailsAuthentication::Generators::AuthenticationGenerator::FEATURES.map { |f| "--skip-#{f}" }
+    {
+      "the default feature set" => [],
+      "every opt-in feature" => %w[--magic-link --ott --passkey --reconfirmable],
+      "every feature skipped" => all_skipped
+    }.each do |description, args|
+      it "leaves no email_address anywhere in the generated output with #{description}" do
+        run_generator ["--email-attribute=email", *args]
+
+        offenders = Dir.glob("**/*", base: destination_root).select do |path|
+          absolute = File.join(destination_root, path)
+          File.file?(absolute) && File.read(absolute).include?("email_address")
+        end
+        expect(offenders).to be_empty
+      end
+    end
+
+    it "defines User.authentication_email_column_name above the concerns, which read it when included" do
+      run_generator %w[--email-attribute=email]
+
+      assert_file "app/models/user.rb",
+                  /\A(?:\ \ \#.*\n|class\ .*\n)+
+                   \ \ def\ self\.authentication_email_column_name\ =\ :email\n\n
+                   \ \ include\ \w+Concern\n/x,
+                  /^  normalizes authentication_email_column_name, with: .*\n\n  def available\?/
+    end
+
+    it "defines User.authentication_email_column_name with every feature skipped" do
+      run_generator(described_class::FEATURES.map { |f| "--skip-#{f}" })
+
+      assert_file "app/models/user.rb",
+                  /^  def self\.authentication_email_column_name = :email_address\n\n  has_secure_password\n/,
+                  /^  normalizes authentication_email_column_name, with: /
+    end
+
+    it "exposes the column name from the Authentication concern, to controllers and views" do
+      run_generator
+
+      assert_file "app/controllers/concerns/authentication.rb",
+                  /helper_method :authenticated\?, :current_user, :authentication_email_column_name/,
+                  /def authentication_email_column_name\n    User\.authentication_email_column_name\n  end/
+    end
+
+    it "renames the column in the base generator's migration and fixtures" do
+      run_generator %w[--email-attribute=email]
+
+      assert_migration "db/migrate/create_users.rb",
+                       /t\.string :email, null: false/,
+                       /add_index :users, :email, unique: true/
+      assert_file "test/fixtures/users.yml", /^  email: one@example\.com$/
+    end
+
+    it "reads the column name at runtime in generated code instead of naming it" do
+      run_generator %w[--email-attribute=login_email --ott]
+
+      assert_file "app/controllers/sessions_controller.rb",
+                  /params\.permit\(authentication_email_column_name, :password\)/
+      assert_file "app/views/sessions/new.html.erb",
+                  /form\.email_field\ authentication_email_column_name,
+                   .*value:\ params\[authentication_email_column_name\]/x
+      assert_file "app/controllers/otts_controller.rb",
+                  /User\.find_by\(authentication_email_column_name => email\)/, /session\[:ott_email\]/
+      assert_file "app/mailers/passwords_mailer.rb", /to: user\[User\.authentication_email_column_name\]/
+      assert_file "app/models/concerns/validatable_concern.rb",
+                  /validates authentication_email_column_name, presence: true/
+      assert_file "app/controllers/invitations_controller.rb",
+                  /t\("flash\.invitations\.create\.notice", email: user\[authentication_email_column_name\]\)/
+      assert_file "config/locales/authentication.en.yml", /notice: Invitation sent to %\{email\}\./
+
+      generated = Dir.glob("{app,config}/**/*", base: destination_root).reject { |path| path == "app/models/user.rb" }
+      offenders = generated.select do |path|
+        absolute = File.join(destination_root, path)
+        File.file?(absolute) && File.read(absolute).include?("login_email")
+      end
+      expect(offenders).to be_empty
+    end
+
+    it "derives Reconfirmable's pending-address column from it" do
+      run_generator %w[--email-attribute=login_email --reconfirmable]
+
+      assert_migration "db/migrate/add_confirmable_to_users.rb", /add_column :users, :unconfirmed_login_email, :string/
+      assert_file "app/models/concerns/confirmable_concern.rb",
+                  /self\[self\.class\.authentication_email_column_name\]\ =
+                     \ attribute_in_database\(self\.class\.authentication_email_column_name\)/x,
+                  /saved_change_to_unconfirmed_login_email\?/
+    end
+
+    it "keeps unconfirmed_email for the default attribute" do
+      run_generator %w[--reconfirmable]
+
+      assert_migration "db/migrate/add_confirmable_to_users.rb", /add_column :users, :unconfirmed_email, :string/
+      assert_file "app/models/user.rb", /def self\.authentication_email_column_name = :email_address/
+    end
+
+    it "rejects a value that isn't a lowercase Ruby identifier, before writing anything" do
+      expect { run_generator %w[--email-attribute=E-mail] }.to output(/lowercase Ruby identifier/).to_stderr
+      expect(Rails::Generators).not_to have_received(:invoke)
+      expect(File).not_to exist(File.join(destination_root, "config/locales/authentication.en.yml"))
     end
   end
 end

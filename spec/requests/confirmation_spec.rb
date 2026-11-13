@@ -37,13 +37,13 @@ RSpec.describe "Confirmation" do
   it "resends confirmation instructions to unconfirmed users only" do
     unconfirmed = create_user(email: "unconfirmed@example.com", confirmed: false)
 
-    post "/confirmations", params: { email_address: unconfirmed.email_address }
+    post "/confirmations", params: { email: unconfirmed.email }
     expect(last_email.to).to eq(["unconfirmed@example.com"])
     expect(unconfirmed.reload.confirmation_token).to be_present
 
     ActionMailer::Base.deliveries.clear
     confirmed = create_user(email: "confirmed@example.com")
-    post "/confirmations", params: { email_address: confirmed.email_address }
+    post "/confirmations", params: { email: confirmed.email }
     expect(ActionMailer::Base.deliveries).to be_empty
   end
 end

@@ -21,7 +21,7 @@ module InvitableConcern
   class_methods do
     def invite!(attributes, invited_by: nil)
       attributes = attributes.to_h.symbolize_keys
-      user = find_by(email_address: attributes[:email_address])
+      user = find_by(authentication_email_column_name => attributes[authentication_email_column_name])
 
       if user
         # Re-inviting an existing pending invitee refreshes their token; anyone else

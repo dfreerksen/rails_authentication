@@ -71,7 +71,13 @@ end
 RUBY
 
 # --magic-link, --ott, and --passkey are opt-in; enabled here so the request specs can exercise them.
-bundle exec rails generate authentication --magic-link --ott --passkey --force
+# --email-attribute=email renames Rails' email_address column, so the request specs (which say
+# `email` throughout) also prove the rename reached every generated file.
+bundle exec rails generate authentication --magic-link --ott --passkey --email-attribute=email --force
+if grep -rl "email_address" app config db; then
+  echo "prepare_dummy: email_address survived --email-attribute=email in the files above" >&2
+  exit 1
+fi
 RAILS_ENV=test bundle exec rails db:migrate
 
 echo

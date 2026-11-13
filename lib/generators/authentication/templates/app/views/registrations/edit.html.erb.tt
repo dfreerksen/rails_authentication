@@ -12,7 +12,7 @@
 <%% end %>
 
 <%%= form_with url: registration_path, method: :patch do |form| %>
-  <%%= form.email_field :email_address, required: true, autocomplete: "username", value: @user.email_address %><br>
+  <%%= form.email_field authentication_email_column_name, required: true, autocomplete: "username", value: @user[authentication_email_column_name] %><br>
   <%%= form.password_field :password, autocomplete: "new-password", placeholder: t('.form.input.password.placeholder'), maxlength: <%= password_maxlength %> %><br>
   <%%= form.password_field :password_confirmation, autocomplete: "new-password", placeholder: t('.form.input.password_confirmation.placeholder'), maxlength: <%= password_maxlength %> %><br>
   <%%= form.submit t('.form.button.submit') %>

@@ -40,7 +40,7 @@ RSpec.describe "User scopes" do
     users.each_value do |user|
       can_sign_in = user.confirmed? && !user.locked? && !user.invitation_pending?
       expect(User.available.exists?(user.id))
-        .to eq(can_sign_in), "#{user.email_address}: expected available=#{can_sign_in}"
+        .to eq(can_sign_in), "#{user.email}: expected available=#{can_sign_in}"
     end
   end
 
@@ -48,12 +48,12 @@ RSpec.describe "User scopes" do
     users.each_value do |user|
       in_scope = User.available.exists?(user.id)
       expect([user.available?, user.active_for_authentication?, user.unavailable?])
-        .to eq([in_scope, in_scope, !in_scope]), "#{user.email_address}: expected available?=#{in_scope}"
+        .to eq([in_scope, in_scope, !in_scope]), "#{user.email}: expected available?=#{in_scope}"
     end
   end
 
   it "composes with other conditions" do
-    expect(User.where(email_address: %w[plain@example.com locked@example.com]).unavailable)
+    expect(User.where(email: %w[plain@example.com locked@example.com]).unavailable)
       .to contain_exactly(users[:locked])
   end
 end

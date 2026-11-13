@@ -11,7 +11,7 @@ class InvitationsController < ApplicationController
     user = User.invite!(invitation_params, invited_by: Current.user)
 
     if user.persisted?
-      redirect_to new_invitation_path, notice: t("flash.invitations.create.notice", email_address: user.email_address)
+      redirect_to new_invitation_path, notice: t("flash.invitations.create.notice", email: user[authentication_email_column_name])
     else
       redirect_to new_invitation_path, alert: user.errors.full_messages.to_sentence
     end
@@ -33,7 +33,7 @@ class InvitationsController < ApplicationController
 
   # Add any other attributes your User requires (e.g. :name) here and to the invitation form.
   def invitation_params
-    params.permit(:email_address)
+    params.permit(authentication_email_column_name)
   end
 
   def set_user_by_token

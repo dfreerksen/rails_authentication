@@ -6,13 +6,13 @@ RSpec.describe "Registration" do
   it "signs up a new user and sends confirmation instructions" do
     expect do
       post "/registration", params: {
-        email_address: "new@example.com", password: RequestHelpers::PASSWORD, password_confirmation: RequestHelpers::PASSWORD
+        email: "new@example.com", password: RequestHelpers::PASSWORD, password_confirmation: RequestHelpers::PASSWORD
       }
     end.to change(User, :count).by(1)
 
     expect(response).to redirect_to("/session/new")
 
-    user = User.find_by!(email_address: "new@example.com")
+    user = User.find_by!(email: "new@example.com")
     expect(user).not_to be_confirmed
     expect(user.confirmation_token).to be_present
     expect(last_email.to).to eq(["new@example.com"])
@@ -22,7 +22,7 @@ RSpec.describe "Registration" do
   it "re-renders the form when the user is invalid" do
     expect do
       post "/registration", params: {
-        email_address: "new@example.com", password: RequestHelpers::PASSWORD, password_confirmation: "different"
+        email: "new@example.com", password: RequestHelpers::PASSWORD, password_confirmation: "different"
       }
     end.not_to change(User, :count)
 
@@ -33,10 +33,10 @@ RSpec.describe "Registration" do
     user = create_user
     sign_in user
 
-    patch "/registration", params: { email_address: "renamed@example.com", password: "", password_confirmation: "" }
+    patch "/registration", params: { email: "renamed@example.com", password: "", password_confirmation: "" }
 
     expect(response).to redirect_to("/registration/edit")
-    expect(user.reload.email_address).to eq("renamed@example.com")
+    expect(user.reload.email).to eq("renamed@example.com")
     expect(user.authenticate(RequestHelpers::PASSWORD)).to be_truthy
   end
 

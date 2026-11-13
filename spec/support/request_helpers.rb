@@ -5,7 +5,7 @@ module RequestHelpers
 
   def create_user(email: "user@example.com", confirmed: true, **attrs)
     User.create!(
-      email_address: email,
+      email: email,
       password: PASSWORD,
       password_confirmation: PASSWORD,
       confirmed_at: confirmed ? Time.current : nil,
@@ -14,7 +14,7 @@ module RequestHelpers
   end
 
   def sign_in(user, password: PASSWORD, remember: false)
-    params = { email_address: user.email_address, password: password }
+    params = { email: user.email, password: password }
     params[:remember_me] = "1" if remember
     post "/session", params: params
   end

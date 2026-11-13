@@ -6,20 +6,20 @@ class OttsController < ApplicationController
   rate_limit to: 10, within: 3.minutes, only: :update, with: -> { redirect_to new_session_path, alert: t("flash.otts.update.alert.rate_limited") }
 
   def create
-    email_address = params[:email_address].presence || session[:ott_email_address]
-    user = User.find_by(email_address: email_address)
+    email = params[authentication_email_column_name].presence || session[:ott_email]
+    user = User.find_by(authentication_email_column_name => email)
     user&.send_ott
-    session[:ott_email_address] = email_address
+    session[:ott_email] = email
 
     redirect_to edit_ott_path, notice: t("flash.otts.create.notice")
   end
 
   def edit
-    redirect_to new_session_path if session[:ott_email_address].blank?
+    redirect_to new_session_path if session[:ott_email].blank?
   end
 
   def update
-    user = User.find_by(email_address: session[:ott_email_address])
+    user = User.find_by(authentication_email_column_name => session[:ott_email])
 
     case user && user.verify_ott(params[:code])
     when nil, :expired
@@ -75,7 +75,7 @@ class OttsController < ApplicationController
     # end
 
     user.consume_ott!
-    session.delete(:ott_email_address)
+    session.delete(:ott_email)
 <% if lockable? -%>
     user.reset_failed_attempts!
 <% end -%>

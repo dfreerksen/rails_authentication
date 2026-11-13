@@ -8,10 +8,10 @@ RSpec.describe "Invitations (invitable)" do
     sign_in inviter
 
     expect do
-      post "/invitations", params: { email_address: "invitee@example.com" }
+      post "/invitations", params: { email: "invitee@example.com" }
     end.to change(User, :count).by(1)
 
-    invitee = User.find_by!(email_address: "invitee@example.com")
+    invitee = User.find_by!(email: "invitee@example.com")
     expect(invitee.invitation_token).to be_present
     expect(invitee.invited_by).to eq(inviter)
     expect(inviter.reload.invitations_count).to eq(1)
@@ -21,7 +21,7 @@ RSpec.describe "Invitations (invitable)" do
 
   it "lets the invitee accept the invitation by setting a password" do
     inviter = create_user(email: "inviter@example.com")
-    invitee = User.invite!({ email_address: "invitee@example.com" }, invited_by: inviter)
+    invitee = User.invite!({ email: "invitee@example.com" }, invited_by: inviter)
 
     patch "/invitations/#{invitee.invitation_token}",
           params: { password: "chosenpassword1", password_confirmation: "chosenpassword1" }
@@ -37,7 +37,7 @@ RSpec.describe "Invitations (invitable)" do
   end
 
   it "rejects a blank password, leaving the invitation pending and the invitee signed out" do
-    invitee = User.invite!({ email_address: "invitee@example.com" })
+    invitee = User.invite!({ email: "invitee@example.com" })
     token = invitee.invitation_token
 
     patch "/invitations/#{token}", params: { password: "", password_confirmation: "" }
@@ -49,23 +49,23 @@ RSpec.describe "Invitations (invitable)" do
   end
 
   it "requires authentication to send invitations" do
-    post "/invitations", params: { email_address: "invitee@example.com" }
+    post "/invitations", params: { email: "invitee@example.com" }
 
     expect(response).to redirect_to("/session/new")
-    expect(User.find_by(email_address: "invitee@example.com")).to be_nil
+    expect(User.find_by(email: "invitee@example.com")).to be_nil
   end
 
   it "re-invites a pending invitee instead of failing on the duplicate email" do
     inviter = create_user(email: "inviter@example.com")
     sign_in inviter
-    post "/invitations", params: { email_address: "invitee@example.com" }
-    first_token = User.find_by!(email_address: "invitee@example.com").invitation_token
+    post "/invitations", params: { email: "invitee@example.com" }
+    first_token = User.find_by!(email: "invitee@example.com").invitation_token
 
     expect do
-      post "/invitations", params: { email_address: "invitee@example.com" }
+      post "/invitations", params: { email: "invitee@example.com" }
     end.not_to change(User, :count)
 
-    expect(User.find_by!(email_address: "invitee@example.com").invitation_token).not_to eq(first_token)
+    expect(User.find_by!(email: "invitee@example.com").invitation_token).not_to eq(first_token)
     expect(inviter.reload.invitations_count).to eq(2)
   end
 
@@ -85,15 +85,15 @@ RSpec.describe "Invitations (invitable)" do
   it "rejects expired invitation tokens" do
     inviter = create_user(email: "inviter@example.com")
     sign_in inviter
-    post "/invitations", params: { email_address: "invitee@example.com" }
-    token = User.find_by!(email_address: "invitee@example.com").invitation_token
+    post "/invitations", params: { email: "invitee@example.com" }
+    token = User.find_by!(email: "invitee@example.com").invitation_token
     sign_out
 
     travel 8.days do
       patch "/invitations/#{token}", params: { password: "chosenpassword1", password_confirmation: "chosenpassword1" }
 
       expect(response).to redirect_to("/session/new")
-      expect(User.find_by!(email_address: "invitee@example.com").invitation_accepted_at).to be_nil
+      expect(User.find_by!(email: "invitee@example.com").invitation_accepted_at).to be_nil
     end
   end
 
@@ -103,12 +103,12 @@ RSpec.describe "Invitations (invitable)" do
     ActionMailer::Base.deliveries.clear
 
     expect do
-      post "/invitations", params: { email_address: "not-an-email" }
+      post "/invitations", params: { email: "not-an-email" }
     end.not_to change(User, :count)
 
     expect(response).to redirect_to("/invitations/new")
     follow_redirect!
-    expect(response.body).to include("Email address is invalid")
+    expect(response.body).to include("Email is invalid")
     expect(ActionMailer::Base.deliveries).to be_empty
     expect(inviter.reload.invitations_count).to eq(0)
   end
@@ -117,10 +117,10 @@ RSpec.describe "Invitations (invitable)" do
     it "builds the invitee from an attributes hash, not just an email address" do
       confirmed_at = 1.day.ago.change(usec: 0)
 
-      invitee = User.invite!({ email_address: "invitee@example.com", confirmed_at: confirmed_at })
+      invitee = User.invite!({ email: "invitee@example.com", confirmed_at: confirmed_at })
 
       expect(invitee).to be_persisted
-      expect(invitee.email_address).to eq("invitee@example.com")
+      expect(invitee.email).to eq("invitee@example.com")
       expect(invitee.confirmed_at).to eq(confirmed_at)
       expect(invitee.invitation_token).to be_present
       expect(invitee.invitation_sent_at).to be_present
@@ -128,17 +128,17 @@ RSpec.describe "Invitations (invitable)" do
     end
 
     it "accepts string keys and permitted ActionController::Parameters" do
-      from_hash = User.invite!({ "email_address" => "string-keys@example.com" })
-      from_params = User.invite!(ActionController::Parameters.new(email_address: "params@example.com")
-                        .permit(:email_address))
+      from_hash = User.invite!({ "email" => "string-keys@example.com" })
+      from_params = User.invite!(ActionController::Parameters.new(email: "params@example.com")
+                        .permit(:email))
 
       expect(from_hash).to be_persisted
       expect(from_params).to be_persisted
-      expect(from_params.email_address).to eq("params@example.com")
+      expect(from_params.email).to eq("params@example.com")
     end
 
     it "always sets a generated temporary password, ignoring any password passed in" do
-      invitee = User.invite!({ email_address: "invitee@example.com", password: "Chosen-by-inviter1" })
+      invitee = User.invite!({ email: "invitee@example.com", password: "Chosen-by-inviter1" })
 
       expect(invitee).to be_persisted
       expect(invitee.authenticate("Chosen-by-inviter1")).to be(false)
@@ -147,7 +147,7 @@ RSpec.describe "Invitations (invitable)" do
     it "records the inviter" do
       inviter = create_user(email: "inviter@example.com")
 
-      invitee = User.invite!({ email_address: "invitee@example.com" }, invited_by: inviter)
+      invitee = User.invite!({ email: "invitee@example.com" }, invited_by: inviter)
 
       expect(invitee.invited_by).to eq(inviter)
       expect(inviter.reload.invitations_count).to eq(1)
@@ -156,10 +156,10 @@ RSpec.describe "Invitations (invitable)" do
     it "returns an unsaved user with errors when the attributes are invalid" do
       ActionMailer::Base.deliveries.clear
 
-      invitee = User.invite!({ email_address: "not-an-email" })
+      invitee = User.invite!({ email: "not-an-email" })
 
       expect(invitee).not_to be_persisted
-      expect(invitee.errors[:email_address]).to be_present
+      expect(invitee.errors[:email]).to be_present
       expect(ActionMailer::Base.deliveries).to be_empty
     end
 
@@ -167,7 +167,7 @@ RSpec.describe "Invitations (invitable)" do
       existing = create_user(email: "member@example.com")
       ActionMailer::Base.deliveries.clear
 
-      result = User.invite!({ email_address: "member@example.com", confirmed_at: nil })
+      result = User.invite!({ email: "member@example.com", confirmed_at: nil })
 
       expect(result).to eq(existing)
       expect(result.reload).to be_confirmed

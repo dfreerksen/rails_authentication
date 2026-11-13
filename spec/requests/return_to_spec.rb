@@ -31,7 +31,7 @@ RSpec.describe "Returning to the requested page after sign-in" do
   end
 
   it "doesn't return to a form submission" do
-    patch "/registration", params: { email_address: "new@example.com" }
+    patch "/registration", params: { email: "new@example.com" }
     expect(response).to redirect_to("/session/new")
 
     sign_in user

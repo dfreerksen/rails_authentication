@@ -27,7 +27,7 @@ RSpec.describe "Remember me (rememberable)" do
     remembered = user.sessions.sole
 
     other_device = open_session
-    other_device.post "/session", params: { email_address: user.email_address, password: RequestHelpers::PASSWORD }
+    other_device.post "/session", params: { email: user.email, password: RequestHelpers::PASSWORD }
 
     expect(user.sessions.count).to eq(2)
     expect(remembered.reload).to be_remembered
@@ -37,7 +37,7 @@ RSpec.describe "Remember me (rememberable)" do
   it "signing out on one device leaves the other device remembered" do
     user = create_user
     other_device = open_session
-    params = { email_address: user.email_address, password: RequestHelpers::PASSWORD, remember_me: "1" }
+    params = { email: user.email, password: RequestHelpers::PASSWORD, remember_me: "1" }
     other_device.post "/session", params: params
     sign_in user
 

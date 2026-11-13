@@ -23,7 +23,7 @@ RSpec.describe RailsAuthentication::Generators::Features::Invitable, type: :gene
     assert_file "app/controllers/invitations_controller.rb",
                 /require_unauthenticated_access only: %i\[ edit update \]/,
                 /User\.invite!\(invitation_params, invited_by: Current\.user\)/,
-                /def invitation_params\n    params\.permit\(:email_address\)\n  end/
+                /def invitation_params\n    params\.permit\(authentication_email_column_name\)\n  end/
     assert_file "app/mailers/invitations_mailer.rb", /def invitation_instructions\(user\)/
     assert_file "app/views/invitations/new.html.erb", /form_with url: invitations_path/
     assert_file "app/views/invitations/edit.html.erb", /invitation_path\(params\[:token\]\)/

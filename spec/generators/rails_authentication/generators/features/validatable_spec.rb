@@ -5,7 +5,7 @@ RSpec.describe RailsAuthentication::Generators::Features::Validatable, type: :ge
     run_generator
 
     assert_file "app/models/concerns/validatable_concern.rb",
-                /validates :email_address, presence: true/,
+                /validates authentication_email_column_name, presence: true/,
                 /uniqueness: \{ case_sensitive: false \}/,
                 /validates :password, length: \{ in: PASSWORD_LENGTH \}, allow_nil: true/
     assert_file "app/models/user.rb", /include ValidatableConcern/

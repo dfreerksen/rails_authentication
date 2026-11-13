@@ -6,9 +6,9 @@ RSpec.describe "MagicLink" do
   it "signs in via an emailed magic link, which is single-use" do
     user = create_user
 
-    post "/magic_links", params: { email_address: user.email_address }
+    post "/magic_links", params: { email: user.email }
     expect(response).to redirect_to("/session/new")
-    expect(last_email.to).to eq([user.email_address])
+    expect(last_email.to).to eq([user.email])
 
     token = user.reload.magic_link_token
     expect(token).to be_present
@@ -37,7 +37,7 @@ RSpec.describe "MagicLink" do
   end
 
   it "does not email unknown addresses but shows the same notice" do
-    post "/magic_links", params: { email_address: "nobody@example.com" }
+    post "/magic_links", params: { email: "nobody@example.com" }
 
     expect(response).to redirect_to("/session/new")
     expect(ActionMailer::Base.deliveries).to be_empty

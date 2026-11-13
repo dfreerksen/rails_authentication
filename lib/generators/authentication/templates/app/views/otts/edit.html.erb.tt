@@ -4,7 +4,7 @@
 <%%= tag.div(flash[:notice], style: "color:green") if flash[:notice] %>
 
 <p>
-  <%%= t('.emailed_code_to', digit_count: OttConcern::OTT_CODE_LENGTH, email: session[:ott_email_address]) %>
+  <%%= t('.emailed_code_to', digit_count: OttConcern::OTT_CODE_LENGTH, email: session[:ott_email]) %>
   <%%= t('.expires_in', expires_in: distance_of_time_in_words(0, OttConcern::OTT_EXPIRES_IN)) %>
 </p>
 

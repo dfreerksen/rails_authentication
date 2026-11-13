@@ -6,9 +6,9 @@ RSpec.describe "Ott" do
   it "signs in via an emailed 6-digit code, which is single-use" do
     user = create_user
 
-    post "/ott", params: { email_address: user.email_address }
+    post "/ott", params: { email: user.email }
     expect(response).to redirect_to("/ott/edit")
-    expect(last_email.to).to eq([user.email_address])
+    expect(last_email.to).to eq([user.email])
 
     code = user.reload.ott_code
     expect(code).to match(/\A\d{6}\z/)
@@ -28,7 +28,7 @@ RSpec.describe "Ott" do
   it "remembers this browser only when remember me is checked" do
     user = create_user
 
-    post "/ott", params: { email_address: user.email_address }
+    post "/ott", params: { email: user.email }
     patch "/ott", params: { code: user.reload.ott_code, remember_me: "1" }
 
     expect(user.sessions.sole).to be_remembered
@@ -38,7 +38,7 @@ RSpec.describe "Ott" do
   it "signs in for the browser session only when remember me is unchecked" do
     user = create_user
 
-    post "/ott", params: { email_address: user.email_address }
+    post "/ott", params: { email: user.email }
     patch "/ott", params: { code: user.reload.ott_code }
 
     expect(user.sessions.sole).not_to be_remembered
@@ -46,7 +46,7 @@ RSpec.describe "Ott" do
   end
 
   it "does not email unknown addresses but shows the same notice" do
-    post "/ott", params: { email_address: "nobody@example.com" }
+    post "/ott", params: { email: "nobody@example.com" }
 
     expect(response).to redirect_to("/ott/edit")
     expect(ActionMailer::Base.deliveries).to be_empty
@@ -54,7 +54,7 @@ RSpec.describe "Ott" do
 
   it "resends a fresh code without re-entering the email address" do
     user = create_user
-    post "/ott", params: { email_address: user.email_address }
+    post "/ott", params: { email: user.email }
     first_code = user.reload.ott_code
 
     post "/ott"
@@ -72,7 +72,7 @@ RSpec.describe "Ott" do
 
   it "rejects wrong codes and voids the code after 5 attempts" do
     user = create_user
-    post "/ott", params: { email_address: user.email_address }
+    post "/ott", params: { email: user.email }
     code = user.reload.ott_code
 
     4.times do
@@ -92,7 +92,7 @@ RSpec.describe "Ott" do
 
   it "rejects expired codes" do
     user = create_user
-    post "/ott", params: { email_address: user.email_address }
+    post "/ott", params: { email: user.email }
     code = user.reload.ott_code
 
     travel 11.minutes do
@@ -106,7 +106,7 @@ RSpec.describe "Ott" do
 
   it "blocks unconfirmed users without consuming the code" do
     user = create_user(confirmed: false)
-    post "/ott", params: { email_address: user.email_address }
+    post "/ott", params: { email: user.email }
     code = user.reload.ott_code
 
     patch "/ott", params: { code: code }
@@ -119,7 +119,7 @@ RSpec.describe "Ott" do
 
   it "blocks locked users" do
     user = create_user
-    post "/ott", params: { email_address: user.email_address }
+    post "/ott", params: { email: user.email }
     user.lock!
     code = user.reload.ott_code
 

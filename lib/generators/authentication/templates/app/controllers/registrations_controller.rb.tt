@@ -47,7 +47,7 @@ class RegistrationsController < ApplicationController
   private
 
   def user_params
-    params.permit(:email_address, :password, :password_confirmation)
+    params.permit(authentication_email_column_name, :password, :password_confirmation)
   end
 
   def user_params_for_update

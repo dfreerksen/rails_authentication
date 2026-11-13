@@ -4,9 +4,9 @@ class ConfirmationsMailer < ApplicationMailer
   def confirmation_instructions(user)
     @user = user
 <% if reconfirmable? -%>
-    mail subject: t('confirmations_mailer.confirmation_instructions.subject'), to: user.unconfirmed_email.presence || user.email_address
+    mail subject: t('confirmations_mailer.confirmation_instructions.subject'), to: user.<%= unconfirmed_email_attribute %>.presence || user[User.authentication_email_column_name]
 <% else -%>
-    mail subject: t('confirmations_mailer.confirmation_instructions.subject'), to: user.email_address
+    mail subject: t('confirmations_mailer.confirmation_instructions.subject'), to: user[User.authentication_email_column_name]
 <% end -%>
   end
 end

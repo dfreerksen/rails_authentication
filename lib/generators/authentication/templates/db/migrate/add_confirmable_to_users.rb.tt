@@ -4,7 +4,7 @@ class AddConfirmableToUsers < ActiveRecord::Migration<%= migration_version %>
     add_column :users, :confirmed_at, :datetime
     add_column :users, :confirmation_sent_at, :datetime
 <% if reconfirmable? -%>
-    add_column :users, :unconfirmed_email, :string
+    add_column :users, :<%= unconfirmed_email_attribute %>, :string
 <% end -%>
 
     add_index :users, :confirmation_token, unique: true

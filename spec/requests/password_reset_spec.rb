@@ -6,12 +6,12 @@ RSpec.describe "Password reset (recoverable)" do
   it "resets the password with an emailed DB-backed token" do
     user = create_user
 
-    post "/passwords", params: { email_address: user.email_address }
+    post "/passwords", params: { email: user.email }
     expect(response).to redirect_to("/session/new")
 
     token = user.reload.reset_password_token
     expect(token).to be_present
-    expect(last_email.to).to eq([user.email_address])
+    expect(last_email.to).to eq([user.email])
     expect(last_email.subject).to eq("Reset your password")
     expect(last_email.text_part.body.to_s).to include(token)
 
@@ -80,14 +80,14 @@ RSpec.describe "Password reset (recoverable)" do
   end
 
   it "does not reveal whether an email address exists" do
-    post "/passwords", params: { email_address: "nobody@example.com" }
+    post "/passwords", params: { email: "nobody@example.com" }
 
     expect(response).to redirect_to("/session/new")
     expect(ActionMailer::Base.deliveries).to be_empty
   end
 
   def signed_in_device(user, remember: false)
-    params = { email_address: user.email_address, password: RequestHelpers::PASSWORD }
+    params = { email: user.email, password: RequestHelpers::PASSWORD }
     params[:remember_me] = "1" if remember
     open_session.tap { |device| device.post "/session", params: params }
   end

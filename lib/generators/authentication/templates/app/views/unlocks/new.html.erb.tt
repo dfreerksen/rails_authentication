@@ -3,6 +3,6 @@
 <%%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
 
 <%%= form_with url: unlocks_path do |form| %>
-  <%%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: t('.form.input.email.placeholder'), value: params[:email_address] %><br>
+  <%%= form.email_field authentication_email_column_name, required: true, autofocus: true, autocomplete: "username", placeholder: t('.form.input.email.placeholder'), value: params[authentication_email_column_name] %><br>
   <%%= form.submit t('.form.button.submit') %>
 <%% end %>

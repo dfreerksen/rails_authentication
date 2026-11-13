@@ -58,6 +58,29 @@ Available flags: `--skip-confirmable`, `--skip-recoverable`, `--skip-registerabl
 `--skip-lockable`, `--skip-invitable`, and `--reconfirmable` (Confirmable: postpone email address
 changes until the new address is confirmed, via an `unconfirmed_email` column).
 
+To call the email column something other than Rails' `email_address`, pass `--email-attribute`:
+
+```sh
+bin/rails generate authentication --email-attribute=email
+```
+
+The name goes into the `users` migration, fixtures, and tests from Rails' own generator, and into
+one method at the top of `User`:
+
+```ruby
+class User < ApplicationRecord
+  def self.authentication_email_column_name = :email
+```
+
+Every controller, view, mailer, and concern this gem generates reads the column name from there
+instead of naming it: controllers and views through `authentication_email_column_name` on the
+`Authentication` concern, models and mailers through `User.authentication_email_column_name`. To
+rename the column later, change that line and write the migration; Rails' own generated tests and
+fixtures, and its password-reset files if you `--skip-recoverable`, name the column directly and
+need updating by hand. Reconfirmable's column is named once, at generation time, as
+`unconfirmed_<name>` with a trailing `_address` dropped (`email` and `email_address` both give
+`unconfirmed_email`; `login_email` gives `unconfirmed_login_email`).
+
 MagicLink, Ott, and Passkey are **opt-in** features — they change the sign-in UX, so you have to
 ask for them:
 
@@ -167,7 +190,8 @@ User.invite!({ email_address: "new@example.com" }, invited_by: Current.user)
 User.invite!({ email_address: "new@example.com", name: "Ada Lovelace" }, invited_by: Current.user)
 ```
 
-`invite!` accepts symbol or string keys, or permitted `ActionController::Parameters`. It
+The examples use the default `email_address` column; with `--email-attribute`, use your column's
+name. `invite!` accepts symbol or string keys, or permitted `ActionController::Parameters`. It
 returns the user either way, so check `persisted?` and `errors` to see whether it worked.
 
 - **New email address**: the user is built from the attributes and gets a random temporary
@@ -188,14 +212,14 @@ permitted. Never pass raw `params`.
 a hash: `User.invite!({ email_address: email_address }, invited_by: ...)`.
 
 **Requiring more than an email address.** The generated `InvitationsController` passes
-`invitation_params` (`params.permit(:email_address)`) to `invite!`. To collect more fields, add
+`invitation_params` (`params.permit(authentication_email_column_name)`) to `invite!`. To collect more fields, add
 them in three places: the `permit` list, the inputs in `app/views/invitations/new.html.erb`, and
 the validations on your model:
 
 ```ruby
 # app/controllers/invitations_controller.rb
 def invitation_params
-  params.permit(:email_address, :name)
+  params.permit(authentication_email_column_name, :name)
 end
 ```
 

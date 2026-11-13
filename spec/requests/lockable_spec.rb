@@ -14,7 +14,7 @@ RSpec.describe "Account locking (lockable)" do
     user.reload
     expect(user).to be_locked
     expect(user.unlock_token).to be_present
-    expect(last_email.to).to eq([user.email_address])
+    expect(last_email.to).to eq([user.email])
     expect(last_email.subject).to eq("Unlock your account")
     expect(last_email.text_part.body.to_s).to include(user.unlock_token)
   end
@@ -62,11 +62,11 @@ RSpec.describe "Account locking (lockable)" do
     locked = create_user(email: "locked@example.com", locked_at: Time.current, unlock_token: "abc")
     unlocked = create_user(email: "fine@example.com")
 
-    post "/unlocks", params: { email_address: locked.email_address }
+    post "/unlocks", params: { email: locked.email }
     expect(last_email.to).to eq(["locked@example.com"])
 
     ActionMailer::Base.deliveries.clear
-    post "/unlocks", params: { email_address: unlocked.email_address }
+    post "/unlocks", params: { email: unlocked.email }
     expect(ActionMailer::Base.deliveries).to be_empty
   end
 end
